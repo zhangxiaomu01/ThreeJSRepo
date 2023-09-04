@@ -64,10 +64,24 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(width, height);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.addEventListener(
-    'change', function() {
-        renderer.render(scene,camera);
-    }
-);
+// We have a render loop -> no need a event listener.
+// controls.addEventListener(
+//     'change', function() {
+//         renderer.render(scene,camera);
+//     }
+// );
 
 document.getElementById("webgl").appendChild(renderer.domElement);
+
+const clock = new THREE.Clock();
+function render() {
+    const spt = clock.getDelta() * 1000; // ms
+    console.log("Time between two frames: ", spt);
+    console.log("FPS: ", 1000 / spt);
+
+    renderer.render(scene, camera); //Render
+    mesh.rotateY(0.01);
+    requestAnimationFrame(render);
+}
+
+render();
