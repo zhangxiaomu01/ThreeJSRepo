@@ -4,8 +4,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 // 扩展库GLTFLoader.js
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const width = 800;
-const height = 600;
+const width = window.innerWidth;
+const height = window.innerHeight;
 
 const scene = new THREE.Scene();
 const geometry = new THREE.BoxGeometry(30, 30, 30);
@@ -83,5 +83,28 @@ function render() {
     mesh.rotateY(0.01);
     requestAnimationFrame(render);
 }
+
+// Not work???
+window.addEventListener(
+    'resize', function() {
+        // Resize
+        render.setSize(window.innerWidth, window.innerHeight);
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        // By default, renderer will cache the camera's Projection matrix for rendering.
+        // Once it's changed, we need to update the projection matrix.
+        camera.updateProjectionMatrix();
+    }
+);
+
+// window.onresize = function () {
+//     // Resize
+//     render.setSize(window.innerWidth, window.innerHeight);
+
+//     camera.aspect = window.innerWidth / window.innerHeight;
+//     // By default, renderer will cache the camera's Projection matrix for rendering.
+//     // Once it's changed, we need to update the projection matrix.
+//     camera.updateProjectionMatrix();
+// };
 
 render();
