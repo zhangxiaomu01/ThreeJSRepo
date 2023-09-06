@@ -3,6 +3,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 // 扩展库GLTFLoader.js
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+// Stat.js
+import Stats from 'three/addons/libs/stats.module.js';
+import { GenerateTestData } from './GenerateTestData.js';
 
 const width = window.innerWidth;
 const height = window.innerHeight;
@@ -56,6 +59,8 @@ scene.add(ambientLight);
 scene.add(directionalLight);
 scene.add(directionalLightHelper);
 
+// GenerateTestData.constructor.GenerateBox(100, scene);
+
 const camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
 camera.position.set(200, 200, 200);
 camera.lookAt(mesh.position);
@@ -73,12 +78,20 @@ const controls = new OrbitControls(camera, renderer.domElement);
 
 document.getElementById("webgl").appendChild(renderer.domElement);
 
+// Performance monitor
+const stats = new Stats();
+document.body.appendChild(stats.domElement);
+// 0 - FPS
+// 1 - ms per frame
+stats.setMode(1);
+
 const clock = new THREE.Clock();
 function render() {
-    const spt = clock.getDelta() * 1000; // ms
-    console.log("Time between two frames: ", spt);
-    console.log("FPS: ", 1000 / spt);
+    // const spt = clock.getDelta() * 1000; // ms
+    // console.log("Time between two frames: ", spt);
+    // console.log("FPS: ", 1000 / spt);
 
+    stats.update();
     renderer.render(scene, camera); //Render
     mesh.rotateY(0.01);
     requestAnimationFrame(render);
@@ -88,7 +101,7 @@ function render() {
 window.addEventListener(
     'resize', function() {
         // Resize
-        render.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(window.innerWidth, window.innerHeight);
 
         camera.aspect = window.innerWidth / window.innerHeight;
         // By default, renderer will cache the camera's Projection matrix for rendering.
