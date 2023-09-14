@@ -11,7 +11,9 @@ const width = window.innerWidth;
 const height = window.innerHeight;
 
 const scene = new THREE.Scene();
-const geometry = new THREE.BoxGeometry(30, 30, 30);
+const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
+const sphereGeometry = new THREE.SphereGeometry(20,20,20);
+const circleGeometry = new THREE.CircleGeometry(10);
 
 // MeshBasicMaterial不受光照影响
 const material = new THREE.MeshBasicMaterial({
@@ -31,9 +33,12 @@ const lambertMaterial = new THREE.MeshLambertMaterial({
 
 const phongMaterial = new THREE.MeshPhongMaterial({
     color: 0xffffff,
+    side: THREE.DoubleSide,
+    shininess: 20,
+    specular: 0x444444, 
 });
 
-const mesh = new THREE.Mesh(geometry, phongMaterial);
+const mesh = new THREE.Mesh(sphereGeometry, phongMaterial);
 mesh.position.set(0, 0, 0);
 
 const axesHelper = new THREE.AxesHelper(150);
@@ -59,7 +64,7 @@ scene.add(ambientLight);
 scene.add(directionalLight);
 scene.add(directionalLightHelper);
 
-// GenerateTestData.constructor.GenerateBox(100, scene);
+GenerateTestData.GenerateBox(2, scene);
 
 const camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
 camera.position.set(200, 200, 200);
@@ -97,7 +102,6 @@ function render() {
     requestAnimationFrame(render);
 }
 
-// Not work???
 window.addEventListener(
     'resize', function() {
         // Resize
