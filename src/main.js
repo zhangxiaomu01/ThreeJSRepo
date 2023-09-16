@@ -6,13 +6,14 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // Stat.js
 import Stats from 'three/addons/libs/stats.module.js';
 import { GenerateTestData } from './GenerateTestData.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 const width = window.innerWidth;
 const height = window.innerHeight;
 
 const scene = new THREE.Scene();
 const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
-const sphereGeometry = new THREE.SphereGeometry(20,20,20);
+const sphereGeometry = new THREE.SphereGeometry(20,30,30);
 const circleGeometry = new THREE.CircleGeometry(10);
 
 // MeshBasicMaterial不受光照影响
@@ -38,7 +39,7 @@ const phongMaterial = new THREE.MeshPhongMaterial({
     specular: 0x444444, 
 });
 
-const mesh = new THREE.Mesh(sphereGeometry, phongMaterial);
+const mesh = new THREE.Mesh(boxGeometry, phongMaterial);
 mesh.position.set(0, 0, 0);
 
 const axesHelper = new THREE.AxesHelper(150);
@@ -70,8 +71,11 @@ const camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
 camera.position.set(200, 200, 200);
 camera.lookAt(mesh.position);
 
-const renderer = new THREE.WebGLRenderer();
+console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
+const renderer = new THREE.WebGLRenderer( {antialias: true,} );
 renderer.setSize(width, height);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setClearColor(0x444444, 1.0);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 // We have a render loop -> no need a event listener.
@@ -123,5 +127,49 @@ window.addEventListener(
 //     // Once it's changed, we need to update the projection matrix.
 //     camera.updateProjectionMatrix();
 // };
+
+// GUI
+const myGui = new GUI();
+myGui.domElement.style.right = '0px';
+myGui.domElement.style.width = '300px';
+// console.log(mesh);
+const geometryGUI = myGui.addFolder('Geometry');
+geometryGUI.close();
+geometryGUI.add(mesh.position, 'x', -100, 100).name('main object position X');
+geometryGUI.add(mesh.position, 'y', -100, 100).name('main object position Y');
+geometryGUI.add(mesh.position, 'z', -100, 100).name('main object position Z');
+
+const lightGUI = myGui.addFolder('Light');
+lightGUI.add(pointLight, 'intensity', 0, 100)
+     .name('point light intensity')
+     .step(0.1).onChange(
+        function (value) {
+            // Callback goes here
+            console.log('point light intensity is: ' + value);
+        }
+     );
+const pointLightColor = {
+    color:0x00ffff,
+};
+// when color changes, the point light color will change!
+lightGUI.addColor(pointLightColor, 'color').onChange(function(value){
+    pointLight.color.set(value);
+});
+lightGUI.add(pointLight.position, 'x', [-20, -10, 0, 10, 20])
+.name('point light position Z').onChange(
+    function(value) {
+        pointLight.position.x = value;
+    }
+);
+lightGUI.add(pointLight.position, 'z', 
+    {
+        'first': -20,
+        'second': 0,
+        'third': 20,
+    }).name('point light position Z').onChange(
+    function(value) {
+        pointLight.position.z = value;
+    }
+);
 
 render();
