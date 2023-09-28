@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // Stat.js
 import Stats from 'three/addons/libs/stats.module.js';
 import { GenerateTestData } from './GenerateTestData.js';
+import { GLTFLoaderTest } from './GLTFLoaderTest.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 const width = window.innerWidth;
@@ -58,17 +59,19 @@ const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 
 scene.add(axesHelper);
-scene.add(mesh);
+// scene.add(mesh);
 scene.add(pointLight);
 scene.add(pointLightHelper);
 scene.add(ambientLight);
 scene.add(directionalLight);
 scene.add(directionalLightHelper);
 
-GenerateTestData.GenerateBox(2, scene);
+// Generate random box
+// GenerateTestData.GenerateBox(2, scene);
+GLTFLoaderTest.LoadGLTFModel(scene);
 
 const camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
-camera.position.set(200, 200, 200);
+camera.position.set(20, 20, 20);
 camera.lookAt(mesh.position);
 
 console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
@@ -76,6 +79,7 @@ const renderer = new THREE.WebGLRenderer( {antialias: true,} );
 renderer.setSize(width, height);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setClearColor(0x444444, 1.0);
+console.log('renderer color space', renderer.outputColorSpace);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 // We have a render loop -> no need a event listener.
