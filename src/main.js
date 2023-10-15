@@ -44,6 +44,9 @@ const phongMaterial = new THREE.MeshPhongMaterial({
     specular: 0x444444, 
 });
 
+// Occulusion query
+// https://raw.githack.com/simon-paris/three.js/occlusion-queries-with-build/examples/webgl_occlusionqueries.html
+
 const mergedGeometry = 
     mergeGeometries([boxGeometry, sphereGeometry, circleGeometry], false);
 
