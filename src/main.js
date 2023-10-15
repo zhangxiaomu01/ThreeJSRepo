@@ -8,6 +8,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { GenerateTestData } from './GenerateTestData.js';
 import { GLTFLoaderTest } from './GLTFLoaderTest.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const width = window.innerWidth;
 const height = window.innerHeight;
@@ -16,6 +17,9 @@ const scene = new THREE.Scene();
 const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
 const sphereGeometry = new THREE.SphereGeometry(20,30,30);
 const circleGeometry = new THREE.CircleGeometry(10);
+
+circleGeometry.translate(0, 20, 0);
+sphereGeometry.translate(0, -40, 0);
 
 // MeshBasicMaterial不受光照影响
 const material = new THREE.MeshBasicMaterial({
@@ -40,7 +44,12 @@ const phongMaterial = new THREE.MeshPhongMaterial({
     specular: 0x444444, 
 });
 
-const mesh = new THREE.Mesh(boxGeometry, phongMaterial);
+const mergedGeometry = 
+    mergeGeometries([boxGeometry, sphereGeometry, circleGeometry], false);
+
+console.log(mergedGeometry);
+
+const mesh = new THREE.Mesh(mergedGeometry, phongMaterial);
 mesh.position.set(0, 0, 0);
 
 const axesHelper = new THREE.AxesHelper(150);
@@ -59,7 +68,7 @@ const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 
 scene.add(axesHelper);
-// scene.add(mesh);
+scene.add(mesh);
 scene.add(pointLight);
 scene.add(pointLightHelper);
 scene.add(ambientLight);
@@ -68,7 +77,7 @@ scene.add(directionalLightHelper);
 
 // Generate random box
 // GenerateTestData.GenerateBox(2, scene);
-GLTFLoaderTest.LoadGLTFModel(scene);
+// GLTFLoaderTest.LoadGLTFModel(scene);
 
 const camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
 camera.position.set(20, 20, 20);
