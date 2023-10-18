@@ -1,7 +1,9 @@
 import * as THREE from 'three';
-import {RenderTestScene} from './RenderTestScene.js'
+import {MergeBufferTest} from './MergeBufferTest.js'
 
-const renderTestScene = new RenderTestScene();
+console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
+
+const renderTestScene = new MergeBufferTest();
 
 function render() {
     renderTestScene.render();
