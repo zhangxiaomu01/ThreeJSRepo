@@ -24,7 +24,7 @@ class MergeBufferTest {
         const sphereGeometry = new THREE.SphereGeometry(20,30,30);
         const circleGeometry = new THREE.CircleGeometry(10);
     
-        circleGeometry.translate(0, 20, 0);
+        circleGeometry.translate(0, 40, 0);
         sphereGeometry.translate(0, -40, 0);
 
         // MeshLambertMaterial受光照影响
@@ -39,12 +39,47 @@ class MergeBufferTest {
             specular: 0x444444, 
         });
 
+        var customMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                customMat1: {
+                  value: new THREE.Matrix4()
+                },
+                customMat2: {
+                    value: new THREE.Matrix4()
+                },
+            },
+            vertexShader:`
+            uniform mat4 customMat1;
+            uniform mat4 customMat2;
+
+            void main()	{
+                gl_Position = projectionMatrix * viewMatrix * customMat2 * vec4( position, 1.0 );
+            }
+          `,
+            fragmentShader: `
+
+            void main()	{
+
+                vec3 color = vec3( 1.0, 0.0, 1.0 );
+                vec3 lightDir = vec3(0.0, 60, 40);
+              
+                gl_FragColor = vec4( color , 1.0 );
+      
+            }
+          `,
+            side: THREE.DoubleSide
+          });
+
+        customMaterial.uniforms.customMat1.value.makeTranslation( 0.5, 30, 20 );
+        customMaterial.uniforms.customMat2.value.makeTranslation( 0.5, 30, -40 );
+
         const mergedGeometry = 
         mergeGeometries([boxGeometry, sphereGeometry, circleGeometry], false);
+        mergedGeometry.drawRange.count = 3600;
 
         console.log(mergedGeometry);
 
-        this.mesh = new THREE.Mesh(mergedGeometry, phongMaterial);
+        this.mesh = new THREE.Mesh(mergedGeometry, customMaterial);
         this.mesh.position.set(0, 0, 0);
 
         const axesHelper = new THREE.AxesHelper(150);
@@ -61,7 +96,7 @@ class MergeBufferTest {
         this.scene.add(directionalLight);
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
-        this.camera.position.set(20, 20, 20);
+        this.camera.position.set(160, 160, 160);
         this.camera.lookAt(this.mesh.position);
 
         this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
