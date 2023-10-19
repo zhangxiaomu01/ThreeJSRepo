@@ -61,6 +61,8 @@ class MergeBufferTest {
                 uTextureSize: {value: new THREE.Vector2(4, 3)},
             },
             vertexShader:`
+            attribute float objectId;
+
             uniform mat4 customMat1;
             uniform mat4 customMat2;
             uniform sampler2D uSpatialTexture;
@@ -72,12 +74,12 @@ class MergeBufferTest {
                 float vStep = 1.0 / uTextureSize.y;
                 float halfVStep = vStep * 0.5;
 
-                float textureSampleV = halfVStep;
-                if (gl_VertexID > 55) {
-                    textureSampleV = halfVStep + vStep;
-                } else if (gl_VertexID > 23) {
-                    textureSampleV = halfVStep + vStep * 2.0;
-                }
+                float textureSampleV = halfVStep + vStep * float(objectId);
+                // if (gl_VertexID > 55) {
+                //     textureSampleV = halfVStep + vStep;
+                // } else if (gl_VertexID > 23) {
+                //     textureSampleV = halfVStep + vStep * 2.0;
+                // }
 
                 float uStep = 1.0 / uTextureSize.x;
                 float halfUStep = uStep / 2.0;
@@ -106,14 +108,13 @@ class MergeBufferTest {
                 gl_FragColor = vec4( lightCoeff * color + vec3(0.5) , 1.0 );      
             }
           `,
-            side: THREE.FrontSide,
+            side: THREE.DoubleSide,
             wireframe: false
           });
 
         customMaterial.uniforms.customMat1.value.makeTranslation( 0.5, 30, 20 );
         customMaterial.uniforms.customMat2.value.makeTranslation( 0.5, 30, -40 );
         customMaterial.uniforms.lightDir.value.copy( directionLightPos );
-        console.log(customMaterial.uniforms.uSpatialTexture.value);
 
         /**
          * Box draw range [0, 36] Sphere [37, ]
@@ -122,11 +123,9 @@ class MergeBufferTest {
             mergeGeometries([boxGeometry, boxGeometry1, sphereGeometry], false);
         
         let res = this.interleaveGeometryAttributes(mergedGeometry);
+        this.createObjectInfoAttribute(mergedGeometry, [23, 96, Infinity]);
         // res = this.interleaveGeometryAttributes(boxGeometry);
 
-        console.log(boxGeometry);
-        console.log(boxGeometry1);
-        console.log(sphereGeometry);
         console.log(mergedGeometry);
 
         mergedGeometry.drawRange.start = 0;
@@ -265,6 +264,23 @@ class MergeBufferTest {
         tex.magFilter = THREE.NearestFilter;
         tex.needsUpdate = true;
         return tex;
+    }
+
+    createObjectInfoAttribute(geometry, level) {
+        if (!geometry.index || !geometry.index.array) return;
+        let data = [];
+        let levelIndex = 0;
+        for (let ii = 0, count = geometry.index.array.length; ii < count; ++ii) {
+            if (ii <= level[levelIndex]) {
+                data.push(levelIndex);
+            } else {
+                levelIndex++;
+                data.push(levelIndex);
+            }
+        }
+
+        geometry.setAttribute("objectId", new THREE.BufferAttribute(new Float32Array(data), 1));
+        return geometry;
     }
     
     render() {
