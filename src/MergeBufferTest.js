@@ -123,7 +123,7 @@ class MergeBufferTest {
             mergeGeometries([boxGeometry, boxGeometry1, sphereGeometry], false);
         
         let res = this.interleaveGeometryAttributes(mergedGeometry);
-        this.createObjectInfoAttribute(mergedGeometry, [23, 96, Infinity]);
+        this.createObjectInfoAttribute(mergedGeometry, [23, 55, Infinity]);
         // res = this.interleaveGeometryAttributes(boxGeometry);
 
         console.log(mergedGeometry);
