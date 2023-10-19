@@ -9,6 +9,7 @@ import { GenerateTestData } from './GenerateTestData.js';
 import { GLTFLoaderTest } from './GLTFLoaderTest.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { interleaveAttributes } from 'three/addons/utils/BufferGeometryUtils.js';
 
 class MergeBufferTest {
 
@@ -18,6 +19,10 @@ class MergeBufferTest {
         this._this = this;
         const width = window.innerWidth;
         const height = window.innerHeight;
+
+        const directionLightPos = new THREE.Vector3(0.0, 60, 40);
+        var meshPos = new THREE.Vector3(0, 0, 0);
+        var translation1 = new THREE.Vector3(0, 0, 0);
     
         this.scene = new THREE.Scene();
         const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
@@ -47,45 +52,66 @@ class MergeBufferTest {
                 customMat2: {
                     value: new THREE.Matrix4()
                 },
+                lightDir: {
+                    value: new THREE.Vector3()
+                },
             },
             vertexShader:`
             uniform mat4 customMat1;
             uniform mat4 customMat2;
 
+            varying vec3 vNormal;
+
             void main()	{
-                gl_Position = projectionMatrix * viewMatrix * customMat2 * vec4( position, 1.0 );
+                vNormal = vec3(customMat2 * vec4(normal, 0));
+                gl_Position = projectionMatrix * viewMatrix * vec4( position, 1.0 );
             }
           `,
             fragmentShader: `
+            uniform vec3 lightDir;
+
+            varying vec3 vNormal;
 
             void main()	{
 
-                vec3 color = vec3( 1.0, 0.0, 1.0 );
-                vec3 lightDir = vec3(0.0, 60, 40);
+                float lightCoeff = max(dot(vNormal, normalize(lightDir)), 0.0);
+                vec3 color = vec3( 1.0, 1.0, 1.0 );
               
-                gl_FragColor = vec4( color , 1.0 );
+                gl_FragColor = vec4( lightCoeff * color + vec3(0.5) , 1.0 );
       
             }
           `,
-            side: THREE.DoubleSide
+            side: THREE.FrontSide
           });
 
         customMaterial.uniforms.customMat1.value.makeTranslation( 0.5, 30, 20 );
         customMaterial.uniforms.customMat2.value.makeTranslation( 0.5, 30, -40 );
+        customMaterial.uniforms.lightDir.value.copy( directionLightPos );
 
+        /**
+         * Box draw range [0, 36] Sphere [37, ]
+         */
         const mergedGeometry = 
-        mergeGeometries([boxGeometry, sphereGeometry, circleGeometry], false);
-        mergedGeometry.drawRange.count = 3600;
+            mergeGeometries([boxGeometry, sphereGeometry], false);
+        
+        let res = interleaveAttributes([mergedGeometry.attributes.position,
+            mergedGeometry.attributes.normal,
+            mergedGeometry.attributes.uv]);
 
-        console.log(mergedGeometry);
+        mergedGeometry.attributes.position = res[0];
+        mergedGeometry.attributes.normal = res[1];
+        mergedGeometry.attributes.uv = res[2];
+
+        // mergedGeometry.drawRange.start = 36;
+        // mergedGeometry.drawRange.count = 36;
 
         this.mesh = new THREE.Mesh(mergedGeometry, customMaterial);
-        this.mesh.position.set(0, 0, 0);
+        this.mesh.position.copy(meshPos);
 
         const axesHelper = new THREE.AxesHelper(150);
 
         const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
-        directionalLight.position.set(0.0, 60, 40);
+        directionalLight.position.copy(directionLightPos);
         directionalLight.target = this.mesh;
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
