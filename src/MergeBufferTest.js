@@ -123,9 +123,12 @@ class MergeBufferTest {
             mergeGeometries([boxGeometry, boxGeometry1, sphereGeometry], false);
         
         let res = this.interleaveGeometryAttributes(mergedGeometry);
-        this.createObjectInfoAttribute(mergedGeometry, [23, 55, Infinity]);
+        this.createObjectInfoAttribute(mergedGeometry, [36, 96, Infinity]);
         // res = this.interleaveGeometryAttributes(boxGeometry);
-
+        
+        console.log(boxGeometry);
+        console.log(boxGeometry1);
+        console.log(sphereGeometry);
         console.log(mergedGeometry);
 
         mergedGeometry.drawRange.start = 0;
@@ -268,18 +271,20 @@ class MergeBufferTest {
 
     createObjectInfoAttribute(geometry, level) {
         if (!geometry.index || !geometry.index.array) return;
-        let data = [];
+        let data = new Map();
         let levelIndex = 0;
         for (let ii = 0, count = geometry.index.array.length; ii < count; ++ii) {
-            if (ii <= level[levelIndex]) {
-                data.push(levelIndex);
-            } else {
+            if (ii >= level[levelIndex]) {
                 levelIndex++;
-                data.push(levelIndex);
             }
+            data.set(geometry.index.array[ii], levelIndex);
         }
+        let dataArray = new Array(data.length);
+        data.forEach(function(value, key) {
+            dataArray[key] = value;
+        });
 
-        geometry.setAttribute("objectId", new THREE.BufferAttribute(new Float32Array(data), 1));
+        geometry.setAttribute("objectId", new THREE.BufferAttribute(new Float32Array(dataArray), 1));
         return geometry;
     }
     
