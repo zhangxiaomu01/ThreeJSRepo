@@ -69,20 +69,23 @@ class MergeBufferTest {
             varying vec3 vNormal;
 
             void main()	{
-                float textureSampleV = 0.16;
+                float vStep = 1.0 / uTextureSize.y;
+                float halfVStep = vStep * 0.5;
+
+                float textureSampleV = halfVStep;
                 if (gl_VertexID > 55) {
-                    textureSampleV = 0.49f;
+                    textureSampleV = halfVStep + vStep;
                 } else if (gl_VertexID > 23) {
-                    textureSampleV = 0.82;
+                    textureSampleV = halfVStep + vStep * 2.0;
                 }
 
-                float step = 1.0 / uTextureSize.x;
-                float halfStep = step / 2.0;
+                float uStep = 1.0 / uTextureSize.x;
+                float halfUStep = uStep / 2.0;
 
-                vec4 col0    = texture2D(uSpatialTexture, vec2(step * 0. + halfStep, textureSampleV));
-                vec4 col1 = texture2D(uSpatialTexture, vec2(step * 1. + halfStep, textureSampleV));
-                vec4 col2   = texture2D(uSpatialTexture, vec2(step * 2. + halfStep, textureSampleV));
-                vec4 col3   = texture2D(uSpatialTexture, vec2(step * 3. + halfStep, textureSampleV));
+                vec4 col0    = texture2D(uSpatialTexture, vec2(uStep * 0. + halfUStep, textureSampleV));
+                vec4 col1 = texture2D(uSpatialTexture, vec2(uStep * 1. + halfUStep, textureSampleV));
+                vec4 col2   = texture2D(uSpatialTexture, vec2(uStep * 2. + halfUStep, textureSampleV));
+                vec4 col3   = texture2D(uSpatialTexture, vec2(uStep * 3. + halfUStep, textureSampleV));
                 mat4 usedMatrix = mat4(col0, col1, col2, col3);
 
                 vNormal = vec3(usedMatrix * vec4(normal, 0));
