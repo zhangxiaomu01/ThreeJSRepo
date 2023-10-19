@@ -28,10 +28,11 @@ class MergeBufferTest {
         const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
         const boxGeometry1 = new THREE.BoxGeometry(20, 20, 10, 2);
         const sphereGeometry = new THREE.SphereGeometry(20,5,5);
-        const circleGeometry = new THREE.CircleGeometry(10);
+        const planeGeometry = new THREE.PlaneGeometry(10, 10);
     
-        circleGeometry.translate(0, 40, 0);
         sphereGeometry.translate(0, -40, 0);
+
+        let currentTexture = this.prepareRenderMatrices();
 
         // MeshLambertMaterial受光照影响
         const lambertMaterial = new THREE.MeshLambertMaterial({
@@ -56,21 +57,33 @@ class MergeBufferTest {
                 lightDir: {
                     value: new THREE.Vector3()
                 },
+                uSpatialTexture: {type: 't', value: currentTexture},
+                uTextureSize: {value: new THREE.Vector2(4, 3)},
             },
             vertexShader:`
             uniform mat4 customMat1;
             uniform mat4 customMat2;
+            uniform sampler2D uSpatialTexture;
+            uniform vec2 uTextureSize;
 
             varying vec3 vNormal;
 
             void main()	{
-                mat4 usedMatrix = mat4(1.0);
-
+                float textureSampleV = 0.16;
                 if (gl_VertexID > 55) {
-                    usedMatrix = customMat2;
+                    textureSampleV = 0.49f;
                 } else if (gl_VertexID > 23) {
-                    usedMatrix = customMat1;
+                    textureSampleV = 0.82;
                 }
+
+                float step = 1.0 / uTextureSize.x;
+                float halfStep = step / 2.0;
+
+                vec4 col0    = texture2D(uSpatialTexture, vec2(step * 0. + halfStep, textureSampleV));
+                vec4 col1 = texture2D(uSpatialTexture, vec2(step * 1. + halfStep, textureSampleV));
+                vec4 col2   = texture2D(uSpatialTexture, vec2(step * 2. + halfStep, textureSampleV));
+                vec4 col3   = texture2D(uSpatialTexture, vec2(step * 3. + halfStep, textureSampleV));
+                mat4 usedMatrix = mat4(col0, col1, col2, col3);
 
                 vNormal = vec3(usedMatrix * vec4(normal, 0));
                 gl_Position = projectionMatrix * viewMatrix * usedMatrix * vec4( position, 1.0 );
@@ -78,6 +91,7 @@ class MergeBufferTest {
           `,
             fragmentShader: `
             uniform vec3 lightDir;
+            uniform sampler2D uSpatialTexture;
 
             varying vec3 vNormal;
 
@@ -86,17 +100,17 @@ class MergeBufferTest {
                 float lightCoeff = max(dot(vNormal, normalize(lightDir)), 0.0);
                 vec3 color = vec3( 1.0, 1.0, 1.0 );
               
-                gl_FragColor = vec4( lightCoeff * color + vec3(0.5) , 1.0 );
-      
+                gl_FragColor = vec4( lightCoeff * color + vec3(0.5) , 1.0 );      
             }
           `,
             side: THREE.FrontSide,
-            wireframe: true
+            wireframe: false
           });
 
         customMaterial.uniforms.customMat1.value.makeTranslation( 0.5, 30, 20 );
         customMaterial.uniforms.customMat2.value.makeTranslation( 0.5, 30, -40 );
         customMaterial.uniforms.lightDir.value.copy( directionLightPos );
+        console.log(customMaterial.uniforms.uSpatialTexture.value);
 
         /**
          * Box draw range [0, 36] Sphere [37, ]
@@ -191,11 +205,69 @@ class MergeBufferTest {
         geometry.attributes.uv = res[2];
         return geometry
     }
+
+    prepareRenderMatrices() {
+        let data = [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0.5,
+            30,
+            20,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0.5,
+            30,
+            -40,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            -10,
+            0,
+            1,
+        ];
+        let dataArray = new Float32Array(data);
+        let tex = new THREE.DataTexture(dataArray, 4, 3, THREE.RGBAFormat, THREE.FloatType);
+        tex.magFilter = THREE.NearestFilter;
+        tex.needsUpdate = true;
+        return tex;
+    }
     
     render() {
         this.stats.update();
         this.renderer.render(this.scene, this.camera); //Render
-        this.mesh.rotateY(0.01);
+        // this.mesh.rotateY(0.01);
     }
 
 };

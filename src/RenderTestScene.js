@@ -27,9 +27,13 @@ class RenderTestScene {
         circleGeometry.translate(0, 20, 0);
         sphereGeometry.translate(0, -40, 0);
 
+        const texLoader = new THREE.TextureLoader();
+        const testImage = texLoader.load('../resources/checker.jpg');
+
         // MeshBasicMaterial不受光照影响
         const material = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
+            // color: 0xffffff,
+            map: testImage,
         });
 
         const transparentMaterial = new THREE.MeshBasicMaterial({
