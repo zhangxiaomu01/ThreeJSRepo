@@ -26,7 +26,8 @@ class MergeBufferTest {
     
         this.scene = new THREE.Scene();
         const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
-        const sphereGeometry = new THREE.SphereGeometry(20,30,30);
+        const boxGeometry1 = new THREE.BoxGeometry(20, 20, 10, 2);
+        const sphereGeometry = new THREE.SphereGeometry(20,5,5);
         const circleGeometry = new THREE.CircleGeometry(10);
     
         circleGeometry.translate(0, 40, 0);
@@ -63,8 +64,16 @@ class MergeBufferTest {
             varying vec3 vNormal;
 
             void main()	{
-                vNormal = vec3(customMat2 * vec4(normal, 0));
-                gl_Position = projectionMatrix * viewMatrix * vec4( position, 1.0 );
+                mat4 usedMatrix = mat4(1.0);
+
+                if (gl_VertexID > 55) {
+                    usedMatrix = customMat2;
+                } else if (gl_VertexID > 23) {
+                    usedMatrix = customMat1;
+                }
+
+                vNormal = vec3(usedMatrix * vec4(normal, 0));
+                gl_Position = projectionMatrix * viewMatrix * usedMatrix * vec4( position, 1.0 );
             }
           `,
             fragmentShader: `
@@ -81,7 +90,8 @@ class MergeBufferTest {
       
             }
           `,
-            side: THREE.FrontSide
+            side: THREE.FrontSide,
+            wireframe: true
           });
 
         customMaterial.uniforms.customMat1.value.makeTranslation( 0.5, 30, 20 );
@@ -92,24 +102,28 @@ class MergeBufferTest {
          * Box draw range [0, 36] Sphere [37, ]
          */
         const mergedGeometry = 
-            mergeGeometries([boxGeometry, sphereGeometry], false);
+            mergeGeometries([boxGeometry, boxGeometry1, sphereGeometry], false);
         
-        let res = interleaveAttributes([mergedGeometry.attributes.position,
-            mergedGeometry.attributes.normal,
-            mergedGeometry.attributes.uv]);
+        let res = this.interleaveGeometryAttributes(mergedGeometry);
+        // res = this.interleaveGeometryAttributes(boxGeometry);
 
-        mergedGeometry.attributes.position = res[0];
-        mergedGeometry.attributes.normal = res[1];
-        mergedGeometry.attributes.uv = res[2];
+        console.log(boxGeometry);
+        console.log(boxGeometry1);
+        console.log(sphereGeometry);
+        console.log(mergedGeometry);
 
-        // mergedGeometry.drawRange.start = 36;
+        mergedGeometry.drawRange.start = 0;
         // mergedGeometry.drawRange.count = 36;
 
         this.mesh = new THREE.Mesh(mergedGeometry, customMaterial);
         this.mesh.position.copy(meshPos);
 
+
+        /// Util
         const axesHelper = new THREE.AxesHelper(150);
 
+
+        /// Lights
         const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
         directionalLight.position.copy(directionLightPos);
         directionalLight.target = this.mesh;
@@ -121,10 +135,14 @@ class MergeBufferTest {
         this.scene.add(ambientLight);
         this.scene.add(directionalLight);
 
+
+        /// Camera
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
         this.camera.position.set(160, 160, 160);
         this.camera.lookAt(this.mesh.position);
 
+
+        /// Renderer
         this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -133,7 +151,8 @@ class MergeBufferTest {
 
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
 
-        // Performance monitor
+
+        /// Performance monitor
         this.stats = new Stats();
         document.body.appendChild(this.stats.domElement);
         this.stats.setMode(0);
@@ -150,7 +169,8 @@ class MergeBufferTest {
             }
         );
 
-        // GUI
+
+        /// GUI
         const myGui = new GUI();
         myGui.domElement.style.right = '0px';
         myGui.domElement.style.width = '300px';
@@ -159,6 +179,17 @@ class MergeBufferTest {
         geometryGUI.add(this.mesh.position, 'x', -100, 100).name('main object position X');
         geometryGUI.add(this.mesh.position, 'y', -100, 100).name('main object position Y');
         geometryGUI.add(this.mesh.position, 'z', -100, 100).name('main object position Z');
+    }
+
+    interleaveGeometryAttributes(geometry) {
+        let res = interleaveAttributes([geometry.attributes.position,
+            geometry.attributes.normal,
+            geometry.attributes.uv]);
+
+        geometry.attributes.position = res[0];
+        geometry.attributes.normal = res[1];
+        geometry.attributes.uv = res[2];
+        return geometry
     }
     
     render() {
