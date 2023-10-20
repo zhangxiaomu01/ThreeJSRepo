@@ -63,8 +63,6 @@ class MergeBufferTest {
             vertexShader:`
             attribute float objectId;
 
-            uniform mat4 customMat1;
-            uniform mat4 customMat2;
             uniform sampler2D uSpatialTexture;
             uniform vec2 uTextureSize;
 
@@ -124,7 +122,6 @@ class MergeBufferTest {
         
         let res = this.interleaveGeometryAttributes(mergedGeometry);
         this.createObjectInfoAttribute(mergedGeometry, [36, 96, Infinity]);
-        // res = this.interleaveGeometryAttributes(boxGeometry);
         
         console.log(boxGeometry);
         console.log(boxGeometry1);
