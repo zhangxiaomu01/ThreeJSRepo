@@ -36,8 +36,50 @@ class MergeBufferTest {
 
         // MeshLambertMaterial受光照影响
         const lambertMaterial = new THREE.MeshLambertMaterial({
-            color: 0xffffff,
+            // color: 0xffffff,
+            map: currentTexture,
         });
+
+        lambertMaterial.onBeforeCompile = function ( shader ) {
+
+            shader.uniforms.newMatrix = { value: new THREE.Matrix4().makeTranslation(0.5, 30, 120) };
+            shader.uniforms.uSpatialTexture = {type: 't', value: currentTexture};
+            shader.uniforms.uTextureSize = {value: new THREE.Vector2(4, 3)},
+
+            console.log(shader.attributes);
+
+            shader.vertexShader = `
+            attribute float objectId;
+            uniform mat4 newMatrix;
+            uniform sampler2D uSpatialTexture;
+            uniform vec2 uTextureSize;
+            `
+            + shader.vertexShader;
+
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                [
+                    `
+                    float vStep = 1.0 / uTextureSize.y;
+                    float halfVStep = vStep * 0.5;
+
+                    float textureSampleV = halfVStep + vStep * float(objectId);
+                    float uStep = 1.0 / uTextureSize.x;
+                    float halfUStep = uStep / 2.0;
+
+                    vec4 col0   = texture2D(uSpatialTexture, vec2(uStep * 0. + halfUStep, textureSampleV));
+                    vec4 col1   = texture2D(uSpatialTexture, vec2(uStep * 1. + halfUStep, textureSampleV));
+                    vec4 col2   = texture2D(uSpatialTexture, vec2(uStep * 2. + halfUStep, textureSampleV));
+                    vec4 col3   = texture2D(uSpatialTexture, vec2(uStep * 3. + halfUStep, textureSampleV));
+                    mat4 usedMatrix = mat4(col0, col1, col2, col3);
+                    vec3 transformed = vec3( usedMatrix * vec4(position, 1.0) );
+                    `,
+                ].join( '\n' )
+            );
+
+            lambertMaterial.userData.shader = shader;
+
+        };
 
         const phongMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff,
@@ -131,7 +173,7 @@ class MergeBufferTest {
         mergedGeometry.drawRange.start = 0;
         // mergedGeometry.drawRange.count = 36;
 
-        this.mesh = new THREE.Mesh(mergedGeometry, customMaterial);
+        this.mesh = new THREE.Mesh(mergedGeometry, lambertMaterial);
         this.mesh.position.copy(meshPos);
 
 
