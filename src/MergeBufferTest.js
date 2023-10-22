@@ -33,11 +33,12 @@ class MergeBufferTest {
         sphereGeometry.translate(0, -40, 0);
 
         let currentTexture = this.prepareRenderMatrices();
+        let currentMatTexture = this.prepareRenderMaterialProperties();
 
         // MeshLambertMaterial受光照影响
         const lambertMaterial = new THREE.MeshLambertMaterial({
-            // color: 0xffffff,
-            map: currentTexture,
+            color: 0xffffff,
+            // map: currentTexture,
         });
 
         lambertMaterial.onBeforeCompile = function ( shader ) {
@@ -45,6 +46,7 @@ class MergeBufferTest {
             shader.uniforms.newMatrix = { value: new THREE.Matrix4().makeTranslation(0.5, 30, 120) };
             shader.uniforms.uSpatialTexture = {type: 't', value: currentTexture};
             shader.uniforms.uTextureSize = {value: new THREE.Vector2(4, 3)},
+            shader.uniforms.uMatTexture = {type: 't', value: currentMatTexture};
 
             console.log(shader.attributes);
 
@@ -53,6 +55,8 @@ class MergeBufferTest {
             uniform mat4 newMatrix;
             uniform sampler2D uSpatialTexture;
             uniform vec2 uTextureSize;
+
+            flat varying float vObjectId;
             `
             + shader.vertexShader;
 
@@ -60,6 +64,8 @@ class MergeBufferTest {
                 '#include <begin_vertex>',
                 [
                     `
+                    vObjectId = objectId;
+
                     float vStep = 1.0 / uTextureSize.y;
                     float halfVStep = vStep * 0.5;
 
@@ -73,6 +79,28 @@ class MergeBufferTest {
                     vec4 col3   = texture2D(uSpatialTexture, vec2(uStep * 3. + halfUStep, textureSampleV));
                     mat4 usedMatrix = mat4(col0, col1, col2, col3);
                     vec3 transformed = vec3( usedMatrix * vec4(position, 1.0) );
+                    `,
+                ].join( '\n' )
+            );
+
+            shader.fragmentShader = `
+            flat varying float vObjectId;
+
+            uniform sampler2D uMatTexture;
+            uniform vec2 uTextureSize;
+            `
+            + shader.fragmentShader;
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+                'vec4 diffuseColor = vec4( diffuse, opacity );',
+                [
+                    `
+                    float vStep = 1.0 / uTextureSize.y;
+                    float halfVStep = vStep * 0.5;
+
+                    float textureSampleV = halfVStep + vStep * float(vObjectId);
+                    vec4 colorExtra   = texture2D(uMatTexture, vec2(0.5, textureSampleV));
+                    vec4 diffuseColor = vec4( diffuse, opacity ) * colorExtra;
                     `,
                 ].join( '\n' )
             );
@@ -303,6 +331,28 @@ class MergeBufferTest {
         ];
         let dataArray = new Float32Array(data);
         let tex = new THREE.DataTexture(dataArray, 4, 3, THREE.RGBAFormat, THREE.FloatType);
+        tex.magFilter = THREE.NearestFilter;
+        tex.needsUpdate = true;
+        return tex;
+    }
+
+    prepareRenderMaterialProperties() {
+        let data = [
+            0.5,
+            0.5,
+            0,
+            1.0,
+            0.0,
+            0.1,
+            1,
+            1.0,
+            0,
+            1,
+            0,
+            1
+        ];
+        let dataArray = new Float32Array(data);
+        let tex = new THREE.DataTexture(dataArray, 1, 3, THREE.RGBAFormat, THREE.FloatType);
         tex.magFilter = THREE.NearestFilter;
         tex.needsUpdate = true;
         return tex;
