@@ -36,7 +36,7 @@ class MergeBufferTest {
         let currentMatTexture = this.prepareRenderMaterialProperties();
 
         // MeshLambertMaterial受光照影响
-        const lambertMaterial = new THREE.MeshLambertMaterial({
+        const lambertMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             // map: currentTexture,
         });
