@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import {MergeBufferTest} from './MergeBufferTest.js'
+import {TestPhysicalMaterial} from './TestPhysicalMaterial.js'
 
 console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
 
 const renderTestScene = new MergeBufferTest();
+const testPhysicalMat = new TestPhysicalMaterial();
 
 var testDIVElement = function () {
     console.log("Test div");
@@ -29,4 +31,9 @@ testDIVElement();
 //     requestAnimationFrame(render);
 // }
 
-// render();
+function render() {
+    testPhysicalMat.render();
+    requestAnimationFrame(render);
+}
+
+render();
