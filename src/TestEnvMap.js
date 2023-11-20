@@ -49,6 +49,7 @@ class TestEnvMap {
 
         this.mesh = new THREE.Mesh(mergedGeometry, phongMaterial);
         this.mesh.position.set(0, 0, 0);
+        this.bgMesh = new THREE.Mesh(mergedGeometry, phongMaterial);
 
         const axesHelper = new THREE.AxesHelper(150);
 
@@ -161,7 +162,8 @@ class TestEnvMap {
             }
         );
 
-        this.AddSixFaceEnvMap();
+        // this.AddSixFaceEnvMap();
+        this.AddBoxBackground(1000);
     }
 
     /**
@@ -180,12 +182,36 @@ class TestEnvMap {
         this.scene.background = texture;
     }
 
+    /**
+     * Using a cube as a background geometry.
+     * @param {number} size the size of the background mesh.
+     */
+    AddBoxBackground(size) {
+        const boxGeometry = new THREE.BoxGeometry(size, size, size);
+        const texLoader = new THREE.TextureLoader();
+        const testbackGroundImage = texLoader.load('../resources/checker.jpg');
+
+
+        const backgroundMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            side: THREE.BackSide,
+            map: testbackGroundImage,
+        });
+
+
+        this.bgMesh = new THREE.Mesh(boxGeometry, backgroundMaterial);
+        this.bgMesh.position.set(0, 0, 0);
+
+        this.scene.add(this.bgMesh);
+    }
+
     getRenderer() {
         return this.renderer;
     }
     
     render() {
         this.stats.update();
+        this.bgMesh.position.copy(this.camera.position);
         this.renderer.render(this.scene, this.camera); //Render
         this.mesh.rotateY(0.01);
     }
