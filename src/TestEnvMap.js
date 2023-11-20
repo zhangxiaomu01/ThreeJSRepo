@@ -12,7 +12,7 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 
-class TestPhysicalMaterial {
+class TestEnvMap {
     constructor() {
         console.log("RenderTestScene executed!");
         var scope = this;
@@ -78,7 +78,7 @@ class TestPhysicalMaterial {
         // GLTFLoaderTest.LoadGLTFModel(scene);
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
-        this.camera.position.set(20, 20, 20);
+        this.camera.position.set(200, 200, 200);
         this.camera.lookAt(this.mesh.position);
 
         console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
@@ -160,6 +160,24 @@ class TestPhysicalMaterial {
                 pointLight.position.z = value;
             }
         );
+
+        this.AddSixFaceEnvMap();
+    }
+
+    /**
+     * One way to add environment background to the scene.
+     */
+    AddSixFaceEnvMap() {
+        const loader = new THREE.CubeTextureLoader();
+        const texture = loader.load([
+            './resources/0.jpeg',
+            './resources/1.jpeg',
+            './resources/2.jpeg',
+            './resources/3.jpeg',
+            './resources/4.jpeg',
+            './resources/5.jpeg',
+        ]);
+        this.scene.background = texture;
     }
 
     getRenderer() {
@@ -174,4 +192,4 @@ class TestPhysicalMaterial {
 
 }
 
-export {TestPhysicalMaterial}
+export {TestEnvMap}

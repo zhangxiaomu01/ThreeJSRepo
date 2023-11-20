@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import {MergeBufferTest} from './MergeBufferTest.js'
-import {TestPhysicalMaterial} from './TestPhysicalMaterial.js'
+import {TestEnvMap} from './TestEnvMap.js'
 
 console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
 
-const testPhysicalMat = new TestPhysicalMaterial();
+const testEnvMap = new TestEnvMap();
 
 function render() {
-    testPhysicalMat.render();
+    testEnvMap.render();
     requestAnimationFrame(render);
 }
 
