@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';;
 // Stat.js
 import Stats from 'three/addons/libs/stats.module.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { BackgroundManager } from './Utils/BackgroundManager.js'
 
 
@@ -30,13 +29,19 @@ class TestSelectionMaterial {
             specular: 0x444444, 
         });
 
-        const mergedGeometry = 
-        mergeGeometries([boxGeometry, sphereGeometry, circleGeometry], false);
-
-        console.log(mergedGeometry);
+        const selectedMaterial = new THREE.MeshPhongMaterial({
+            color: 0xffff00,
+            side: THREE.DoubleSide,
+            shininess: 20,
+            specular: 0x444444, 
+        });
 
         this.mesh = new THREE.Mesh(boxGeometry, phongMaterial);
+        this.mesh1 = new THREE.Mesh(sphereGeometry, phongMaterial);
+        this.mesh2 = new THREE.Mesh(circleGeometry, phongMaterial);
         this.mesh.position.set(0, 0, 0);
+        this.mesh1.position.set(60, 0, -60);
+        this.mesh2.position.set(-60, 25, -60);
 
         const axesHelper = new THREE.AxesHelper(150);
 
@@ -45,12 +50,12 @@ class TestSelectionMaterial {
         directionalLight.position.set(0.0, 60, 40);
         directionalLight.target = this.mesh;
         const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1.0, 0xff0000);
-        // directionalLight.rotateOnAxis(new THREE.Vector3(1.0, 0.0, 0.0), THREE.MathUtils.degToRad(45));
-
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 
         this.scene.add(axesHelper);
         this.scene.add(this.mesh);
+        this.scene.add(this.mesh1);
+        this.scene.add(this.mesh2);
         this.scene.add(ambientLight);
         this.scene.add(directionalLight);
         this.scene.add(directionalLightHelper);
@@ -59,7 +64,6 @@ class TestSelectionMaterial {
         this.camera.position.set(200, 200, 200);
         this.camera.lookAt(this.mesh.position);
 
-        console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
         this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(window.devicePixelRatio);
