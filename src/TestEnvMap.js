@@ -6,7 +6,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // Stat.js
 import Stats from 'three/addons/libs/stats.module.js';
-import { GenerateTestData } from './GenerateTestData.js';
 import { GLTFLoaderTest } from './GLTFLoaderTest.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -72,10 +71,6 @@ class TestEnvMap {
         this.scene.add(ambientLight);
         this.scene.add(directionalLight);
         this.scene.add(directionalLightHelper);
-
-        // Generate random box
-        // GenerateTestData.GenerateBox(2, scene);
-        // GLTFLoaderTest.LoadGLTFModel(scene);
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
         this.camera.position.set(200, 200, 200);
