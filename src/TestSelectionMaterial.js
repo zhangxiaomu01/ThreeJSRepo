@@ -1,14 +1,11 @@
 
 import * as THREE from 'three';
 // 扩展库OrbitControls.js
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-// 扩展库GLTFLoader.js
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';;
 // Stat.js
 import Stats from 'three/addons/libs/stats.module.js';
-import { GLTFLoaderTest } from './GLTFLoaderTest.js';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { BackgroundManager } from './Utils/BackgroundManager.js'
 
 
 class TestSelectionMaterial {
@@ -91,23 +88,7 @@ class TestSelectionMaterial {
             }
         );
 
-        this.AddSixFaceEnvMap();
-    }
-
-    /**
-     * One way to add environment background to the scene.
-     */
-    AddSixFaceEnvMap() {
-        const loader = new THREE.CubeTextureLoader();
-        const texture = loader.load([
-            './resources/0.jpeg',
-            './resources/1.jpeg',
-            './resources/2.jpeg',
-            './resources/3.jpeg',
-            './resources/4.jpeg',
-            './resources/5.jpeg',
-        ]);
-        this.scene.background = texture;
+        BackgroundManager.AddSixFaceEnvMap(this.scene);
     }
 
     getRenderer() {

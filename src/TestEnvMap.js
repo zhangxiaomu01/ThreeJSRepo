@@ -156,24 +156,7 @@ class TestEnvMap {
             }
         );
 
-        // this.AddSixFaceEnvMap();
         this.AddBoxBackground(1000);
-    }
-
-    /**
-     * One way to add environment background to the scene.
-     */
-    AddSixFaceEnvMap() {
-        const loader = new THREE.CubeTextureLoader();
-        const texture = loader.load([
-            './resources/0.jpeg',
-            './resources/1.jpeg',
-            './resources/2.jpeg',
-            './resources/3.jpeg',
-            './resources/4.jpeg',
-            './resources/5.jpeg',
-        ]);
-        this.scene.background = texture;
     }
 
     /**
