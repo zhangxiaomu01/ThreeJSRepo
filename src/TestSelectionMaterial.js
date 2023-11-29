@@ -18,7 +18,7 @@ class TestSelectionMaterial {
         this.scene = new THREE.Scene();
         const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
         const sphereGeometry = new THREE.SphereGeometry(20,30,30);
-        const torusKnotGeometry = new THREE.TorusKnotGeometry( 10, 3, 100, 16 );
+        const torusKnotGeometry = new THREE.TorusKnotGeometry( 10, 3, 100, 16, 4, 2 );
     
         this.defaultMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff,
@@ -41,8 +41,12 @@ class TestSelectionMaterial {
             specular: 0x444444, 
         });
 
-        this.selectedMaterial = new THREE.MeshPhongMaterial({
-            color: 0xffff00,
+        this.selectedMaterial = new THREE.MeshLambertMaterial({
+            color: 0xffC940,
+            opacity:0.25,
+            transparent: true,
+            depthTest:false,
+            blending: THREE.AdditiveBlending,
             side: THREE.DoubleSide,
             shininess: 20,
             specular: 0x444444, 
@@ -58,6 +62,9 @@ class TestSelectionMaterial {
         this.mesh2.scale.set(2, 2, 2);
         this.mesh3.position.set(-65, 0, 40);
         this.mesh3.scale.set(2, 2, 2);
+
+        this.meshIds = [this.mesh.uuid, this.mesh1.uuid, this.mesh2.uuid, this.mesh3.uuid];
+        this.meshArrays = [this.mesh, this.mesh1, this.mesh2, this.mesh3];
 
         const axesHelper = new THREE.AxesHelper(150);
 
@@ -144,6 +151,7 @@ class TestSelectionMaterial {
             }
             
             if (object && object instanceof THREE.Mesh) {
+                console.log(object);
                 scope.selectedMeshMat = object.material;
                 object.material = scope.selectedMaterial;
                 scope.selectedMesh = object;
