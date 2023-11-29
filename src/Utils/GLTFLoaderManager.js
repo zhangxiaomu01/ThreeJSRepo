@@ -24,7 +24,7 @@ class GLTFLoaderManager {
         loader.load('./threejs_r155/examples/models/gltf/RobotExpressive/RobotExpressive.glb', function (model) {
             console.log('gltf model!', model);
             console.log(model.scene);
-            model.position.set(position.x, position.y, position.z);
+            model.scene.position.set(position.x, position.y, position.z);
             currentScene.add(model.scene);
         });
     }
