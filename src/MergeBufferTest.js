@@ -6,7 +6,6 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // Stat.js
 import Stats from 'three/addons/libs/stats.module.js';
 import { GenerateTestData } from './Utils/GenerateTestData.js';
-import { GLTFLoaderTest } from './GLTFLoaderTest.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { interleaveAttributes } from 'three/addons/utils/BufferGeometryUtils.js';
