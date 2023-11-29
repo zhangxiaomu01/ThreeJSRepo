@@ -1,19 +1,22 @@
 
 import * as THREE from 'three';
 // 扩展库OrbitControls.js
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';;
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 // Stat.js
 import Stats from 'three/addons/libs/stats.module.js';
 import { BackgroundManager } from './Utils/BackgroundManager.js'
 import { SelectionManager } from './Utils/SelectionManager.js'
-
+import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js'
 
 class TestSelectionMaterial {
     constructor() {
         console.log("TestSelectionMaterial executed!");
         var scope = this;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        const canvasWidth = window.innerWidth;
+        const canvasHeight = window.innerHeight;
+        const width = canvasWidth * window.devicePixelRatio;
+        const height = canvasWidth * window.devicePixelRatio;
+        console.log("device pixel ratio: " + window.devicePixelRatio);
     
         this.scene = new THREE.Scene();
         const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
@@ -84,12 +87,28 @@ class TestSelectionMaterial {
         this.scene.add(directionalLight);
         this.scene.add(directionalLightHelper);
 
-        this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
+        this.camera = new THREE.PerspectiveCamera(30, canvasWidth / canvasHeight, 1, 3000);
         this.camera.position.set(200, 200, 200);
         this.camera.lookAt(this.mesh.position);
 
+        // Sets the first render target for all non-selected meshes!
+        let renderTargetParameters = {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat
+        };
+        this.renderNonSelectMeshesTarget = new THREE.WebGLRenderTarget(width, height, renderTargetParameters);
+
+        this.outputPassMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            map: this.renderNonSelectMeshesTarget.texture,
+            side: THREE.DoubleSide,
+        });
+        this.fsQuad = new FullScreenQuad(this.outputPassMaterial);
+
+        // Renderer
         this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
-        this.renderer.setSize(width, height);
+        this.renderer.setSize(canvasWidth, canvasHeight);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setClearColor(0x444444, 1.0);
 
@@ -106,13 +125,17 @@ class TestSelectionMaterial {
 
         window.addEventListener(
             'resize', function() {
+                let ratio = window.devicePixelRatio;
                 // Resize
                 scope.renderer.setSize(window.innerWidth, window.innerHeight);
     
                 scope.camera.aspect = window.innerWidth / window.innerHeight;
+
                 // By default, renderer will cache the camera's Projection matrix for rendering.
                 // Once it's changed, we need to update the projection matrix.
                 scope.camera.updateProjectionMatrix();
+
+                scope.renderNonSelectMeshesTarget.setSize(window.innerWidth * ratio, window.innerHeight * ratio);
             }
         );
 
@@ -134,8 +157,14 @@ class TestSelectionMaterial {
     
     render() {
         this.stats.update();
-        this.renderer.render(this.scene, this.camera); //Render
         this.mesh.rotateY(0.01);
+
+        // this.renderer.render(this.scene, this.camera); //Render
+
+        this.renderer.setRenderTarget(this.renderNonSelectMeshesTarget);
+        this.renderer.render(this.scene, this.camera); //Render
+        this.renderer.setRenderTarget(null);
+        this.fsQuad.render(this.renderer);
     }
 
     onLeftMouseClick(event) {
