@@ -12,7 +12,7 @@ class SelectionManager {
         console.log("SelectionManager created!");
     }
 
-    static onPointerDown( event, scene, camera, callback ) {
+    static onMouseClick( event, scene, camera, callback ) {
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 

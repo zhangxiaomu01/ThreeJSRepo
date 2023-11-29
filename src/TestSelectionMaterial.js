@@ -18,13 +18,24 @@ class TestSelectionMaterial {
         this.scene = new THREE.Scene();
         const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
         const sphereGeometry = new THREE.SphereGeometry(20,30,30);
-        const circleGeometry = new THREE.CircleGeometry(10);
+        const torusKnotGeometry = new THREE.TorusKnotGeometry( 10, 3, 100, 16 );
     
-        circleGeometry.translate(20, 40, 0);
-        sphereGeometry.translate(0, -40, 30);
-
         this.defaultMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff,
+            side: THREE.DoubleSide,
+            shininess: 20,
+            specular: 0x444444, 
+        });
+        
+        this.darkMaterial = new THREE.MeshPhongMaterial({
+            color: 0x252525,
+            side: THREE.DoubleSide,
+            shininess: 20,
+            specular: 0x444444, 
+        });
+
+        this.redMaterial = new THREE.MeshPhongMaterial({
+            color: 0xff0000,
             side: THREE.DoubleSide,
             shininess: 20,
             specular: 0x444444, 
@@ -38,11 +49,15 @@ class TestSelectionMaterial {
         });
 
         this.mesh = new THREE.Mesh(boxGeometry, this.defaultMaterial);
-        this.mesh1 = new THREE.Mesh(sphereGeometry, this.defaultMaterial);
-        this.mesh2 = new THREE.Mesh(circleGeometry, this.defaultMaterial);
+        this.mesh1 = new THREE.Mesh(sphereGeometry, this.darkMaterial);
+        this.mesh2 = new THREE.Mesh(boxGeometry, this.darkMaterial);
+        this.mesh3 = new THREE.Mesh(torusKnotGeometry, this.redMaterial);
         this.mesh.position.set(0, 0, 0);
         this.mesh1.position.set(30, 0, -30);
-        this.mesh2.position.set(-30, 25, -30);
+        this.mesh2.position.set(-60, 45, -60);
+        this.mesh2.scale.set(2, 2, 2);
+        this.mesh3.position.set(-65, 0, 40);
+        this.mesh3.scale.set(2, 2, 2);
 
         const axesHelper = new THREE.AxesHelper(150);
 
@@ -57,6 +72,7 @@ class TestSelectionMaterial {
         this.scene.add(this.mesh);
         this.scene.add(this.mesh1);
         this.scene.add(this.mesh2);
+        this.scene.add(this.mesh3);
         this.scene.add(ambientLight);
         this.scene.add(directionalLight);
         this.scene.add(directionalLightHelper);
@@ -93,10 +109,11 @@ class TestSelectionMaterial {
             }
         );
 
-        this.onPointerDown = this.onPointerDown.bind(this);
-        window.addEventListener( 'pointerdown', this.onPointerDown );
+        this.onLeftMouseClick = this.onLeftMouseClick.bind(this);
+        window.addEventListener( 'click', this.onLeftMouseClick );
 
         this.selectedMesh = null;
+        this.selectedMeshMat = null;
 
         // Another way to register an event while accessing the correct 'this' context!
         // window.addEventListener( 'pointerdown', () => { /* ... */} );
@@ -114,15 +131,22 @@ class TestSelectionMaterial {
         this.mesh.rotateY(0.01);
     }
 
-    onPointerDown(event) {
+    onLeftMouseClick(event) {
+        if (event.button !== 0) {
+            return;
+        }
         let scope = this;
-        SelectionManager.onPointerDown(event, this.scene, this.camera, function (object) {
+        SelectionManager.onMouseClick(event, this.scene, this.camera, function (object) {
+            if (scope.selectedMesh && scope.selectedMeshMat) {
+                scope.selectedMesh.material = scope.selectedMeshMat;
+                scope.selectedMesh = null;
+                scope.selectedMeshMat = null;
+            }
+            
             if (object && object instanceof THREE.Mesh) {
+                scope.selectedMeshMat = object.material;
                 object.material = scope.selectedMaterial;
                 scope.selectedMesh = object;
-            } else if (scope.selectedMesh) {
-                scope.selectedMesh.material = scope.defaultMaterial;
-                scope.selectedMesh = null;
             }
         });
     }
