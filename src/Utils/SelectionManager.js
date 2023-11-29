@@ -24,8 +24,11 @@ class SelectionManager {
         if ( intersects.length > 0 ) {
 
             const object = intersects[ 0 ].object;
-            callback(object);
-            render();
+            if (callback) {
+                callback(object);
+            }
+        } else if (callback) {
+            callback(null);
         }
 
     }

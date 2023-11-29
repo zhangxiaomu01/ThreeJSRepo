@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';;
 // Stat.js
 import Stats from 'three/addons/libs/stats.module.js';
 import { BackgroundManager } from './Utils/BackgroundManager.js'
+import { SelectionManager } from './Utils/SelectionManager.js'
 
 
 class TestSelectionMaterial {
@@ -22,26 +23,26 @@ class TestSelectionMaterial {
         circleGeometry.translate(20, 40, 0);
         sphereGeometry.translate(0, -40, 30);
 
-        const phongMaterial = new THREE.MeshPhongMaterial({
+        this.defaultMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff,
             side: THREE.DoubleSide,
             shininess: 20,
             specular: 0x444444, 
         });
 
-        const selectedMaterial = new THREE.MeshPhongMaterial({
+        this.selectedMaterial = new THREE.MeshPhongMaterial({
             color: 0xffff00,
             side: THREE.DoubleSide,
             shininess: 20,
             specular: 0x444444, 
         });
 
-        this.mesh = new THREE.Mesh(boxGeometry, phongMaterial);
-        this.mesh1 = new THREE.Mesh(sphereGeometry, phongMaterial);
-        this.mesh2 = new THREE.Mesh(circleGeometry, phongMaterial);
+        this.mesh = new THREE.Mesh(boxGeometry, this.defaultMaterial);
+        this.mesh1 = new THREE.Mesh(sphereGeometry, this.defaultMaterial);
+        this.mesh2 = new THREE.Mesh(circleGeometry, this.defaultMaterial);
         this.mesh.position.set(0, 0, 0);
-        this.mesh1.position.set(60, 0, -60);
-        this.mesh2.position.set(-60, 25, -60);
+        this.mesh1.position.set(30, 0, -30);
+        this.mesh2.position.set(-30, 25, -30);
 
         const axesHelper = new THREE.AxesHelper(150);
 
@@ -92,6 +93,14 @@ class TestSelectionMaterial {
             }
         );
 
+        this.onPointerDown = this.onPointerDown.bind(this);
+        window.addEventListener( 'pointerdown', this.onPointerDown );
+
+        this.selectedMesh = null;
+
+        // Another way to register an event while accessing the correct 'this' context!
+        // window.addEventListener( 'pointerdown', () => { /* ... */} );
+
         BackgroundManager.AddSixFaceEnvMap(this.scene);
     }
 
@@ -103,6 +112,19 @@ class TestSelectionMaterial {
         this.stats.update();
         this.renderer.render(this.scene, this.camera); //Render
         this.mesh.rotateY(0.01);
+    }
+
+    onPointerDown(event) {
+        let scope = this;
+        SelectionManager.onPointerDown(event, this.scene, this.camera, function (object) {
+            if (object && object instanceof THREE.Mesh) {
+                object.material = scope.selectedMaterial;
+                scope.selectedMesh = object;
+            } else if (scope.selectedMesh) {
+                scope.selectedMesh.material = scope.defaultMaterial;
+                scope.selectedMesh = null;
+            }
+        });
     }
 
 }
