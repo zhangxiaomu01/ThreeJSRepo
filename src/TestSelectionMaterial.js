@@ -71,6 +71,8 @@ class TestSelectionMaterial {
 
         const axesHelper = new THREE.AxesHelper(150);
 
+        console.log("This is test!");
+
         // Light source
         const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
         directionalLight.position.set(0.0, 60, 40);
