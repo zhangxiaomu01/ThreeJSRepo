@@ -1,12 +1,10 @@
 
-import * as THREE from 'three';
-// 扩展库OrbitControls.js
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { THREE, OrbitControls, GUI, FullScreenQuad } from './CommonImports.js'
 // Stat.js
-import Stats from 'three/addons/libs/stats.module.js';
+import Stats from '../threejs_r155/examples/jsm/libs/stats.module.js';
+
 import { BackgroundManager } from './Utils/BackgroundManager.js'
 import { SelectionManager } from './Utils/SelectionManager.js'
-import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js'
 
 class TestSelectionMaterial {
     constructor() {
