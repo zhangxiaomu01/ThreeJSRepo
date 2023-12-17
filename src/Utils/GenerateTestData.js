@@ -1,5 +1,5 @@
 
-import * as THREE from 'three';
+import { THREE } from '../CommonImports.js'
 
 class GenerateTestData {
     constructor() {

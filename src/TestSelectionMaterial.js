@@ -49,8 +49,6 @@ class TestSelectionMaterial {
             depthTest:false,
             blending: THREE.AdditiveBlending,
             side: THREE.DoubleSide,
-            shininess: 20,
-            specular: 0x444444, 
         });
 
         this.mesh = new THREE.Mesh(boxGeometry, this.defaultMaterial);

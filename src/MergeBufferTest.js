@@ -1,14 +1,6 @@
-import * as THREE from 'three';
-// 扩展库OrbitControls.js
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-// 扩展库GLTFLoader.js
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // Stat.js
-import Stats from 'three/addons/libs/stats.module.js';
-import { GenerateTestData } from './Utils/GenerateTestData.js';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { interleaveAttributes } from 'three/addons/utils/BufferGeometryUtils.js';
+import Stats from '../threejs_r155/examples/jsm/libs/stats.module.js';
+import { THREE, OrbitControls, GUI, mergeGeometries, interleaveAttributes } from '../CommonImports.js'
 
 class MergeBufferTest {
 
