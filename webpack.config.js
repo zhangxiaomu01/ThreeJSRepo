@@ -20,9 +20,9 @@ module.exports = {
             },
         ],
     },
-    plugins: [
-        new BundleAnalyzerPlugin(),
-    ],
+    // plugins: [
+    //     new BundleAnalyzerPlugin(),
+    // ],
     devServer: {
         static: {
           directory: path.join(__dirname, 'dist'),
