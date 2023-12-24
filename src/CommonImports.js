@@ -7,3 +7,4 @@ export { mergeGeometries } from '../threejs_r155/examples/jsm/utils/BufferGeomet
 export { interleaveAttributes } from '../threejs_r155/examples/jsm/utils/BufferGeometryUtils.js';
 export { FullScreenQuad } from '../threejs_r155/examples/jsm/postprocessing/Pass.js';
 export { OBJLoader } from '../threejs_r155/examples/jsm/loaders/OBJLoader.js';
+export { RGBELoader } from '../threejs_r155/examples/jsm/loaders/RGBELoader.js';

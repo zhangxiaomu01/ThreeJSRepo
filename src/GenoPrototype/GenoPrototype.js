@@ -1,5 +1,5 @@
 import Stats from '../../threejs_r155/examples/jsm/libs/stats.module.js';
-import { THREE, OrbitControls, GUI, mergeGeometries, OBJLoader } from '../CommonImports.js';
+import { THREE, OrbitControls, GUI, RGBELoader, OBJLoader } from '../CommonImports.js';
 
 /**
  * A class which provides the entry for the geno proto type demo.
@@ -12,38 +12,36 @@ class GenoPrototype {
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        this.mesh = new THREE.Object3D();
+        this.baseMesh = new THREE.Object3D();
 
         // instantiate a loader
-        const loader = new OBJLoader();
+        this.objLoader = new OBJLoader();
+
+        const hdrEquirect = new RGBELoader().load(
+            "./resources/GenoPrototype/Warehouse-with-lights_BlackGround.hdr",  
+            () => { 
+              hdrEquirect.mapping = THREE.EquirectangularReflectionMapping; 
+            }
+          );
     
         this.scene = new THREE.Scene();
+        this.transparentMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.7,
+            depthTest: true,
+            metalness: 0.0,  
+            roughness: 0,
+            reflectivity: 1.0,
+            transmission: 1, // Add transparency
+            thickness: 0.0, // Add refraction!
+            envMap: hdrEquirect,
+            envMapIntensity: 2.0,
+        });
 
         // load a resource
-        loader.load(
-            // resource URL
-            './resources/GenoPrototype/BaseObj.obj',
-            // called when resource is loaded
-            function ( object ) {
-                console.log(object);
-                scope.mesh = object;
-                scope.scene.add( object );
-
-            },
-            // called when loading is in progresses
-            function ( xhr ) {
-
-                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-
-            },
-            // called when loading has errors
-            function ( error ) {
-
-                console.log( 'An error happened' );
-                console.log(error);
-
-            }
-        );
+        this.loadObj('./resources/GenoPrototype/BaseMesh.obj');
+        this.loadObj('./resources/GenoPrototype/BaseCupsMesh.obj');
 
         const texLoader = new THREE.TextureLoader();
         const testImage = texLoader.load('../resources/checker.jpg');
@@ -55,9 +53,9 @@ class GenoPrototype {
         pointLight.position.set(40, 40, 0);
         const pointLightHelper = new THREE.PointLightHelper(pointLight, 1.0, 0xff0000ff);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
+        const directionalLight = new THREE.DirectionalLight(0xffffffff, 30.0);
         directionalLight.position.set(0.0, 60, 40);
-        directionalLight.target = this.mesh;
+        directionalLight.target = this.baseMesh;
         const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1.0, 0xff0000);
         // directionalLight.rotateOnAxis(new THREE.Vector3(1.0, 0.0, 0.0), THREE.MathUtils.degToRad(45));
 
@@ -72,12 +70,12 @@ class GenoPrototype {
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
         this.camera.position.set(20, 20, 20);
-        this.camera.lookAt(this.mesh.position);
+        this.camera.lookAt(this.baseMesh.position);
 
         this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setClearColor(0x444444, 1.0);
+        this.renderer.setClearColor(0x000000, 1.0);
 
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
         document.getElementById("webgl").appendChild(this.renderer.domElement);
@@ -146,7 +144,33 @@ class GenoPrototype {
     render() {
         this.stats.update();
         this.renderer.render(this.scene, this.camera); //Render
-        this.mesh.rotateY(0.01);
+    }
+
+    loadObj(path) {
+        var scope = this;
+        this.objLoader.load(
+            // resource URL
+            path,
+            // called when resource is loaded
+            function ( object ) {
+                console.log(object);
+                scope.baseMesh = object.children[0];
+                if (object.children[0]) {
+                    object.children[0].material = scope.transparentMaterial;
+                }
+                scope.scene.add( object );
+
+            },
+            // called when loading is in progresses
+            function ( xhr ) {
+                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+            },
+            // called when loading has errors
+            function ( error ) {
+                console.log( 'An error happened' );
+                console.log(error);
+            }
+        );
     }
 
 }
