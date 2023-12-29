@@ -12,7 +12,7 @@ class GenoPrototype {
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        this.baseMesh = new THREE.Object3D();
+        this.baseObjectGroup = new THREE.Group();
 
         // instantiate a loader
         this.objLoader = new OBJLoader();
@@ -40,8 +40,9 @@ class GenoPrototype {
         });
 
         // load a resource
-        this.loadObj('./resources/GenoPrototype/BaseMesh.obj');
-        this.loadObj('./resources/GenoPrototype/BaseCupsMesh.obj');
+        this.addBaseObjects();
+
+        this.scene.add(this.baseObjectGroup);
 
         const texLoader = new THREE.TextureLoader();
         const testImage = texLoader.load('../resources/checker.jpg');
@@ -55,7 +56,7 @@ class GenoPrototype {
 
         const directionalLight = new THREE.DirectionalLight(0xffffffff, 30.0);
         directionalLight.position.set(0.0, 60, 40);
-        directionalLight.target = this.baseMesh;
+        directionalLight.target = this.baseObjectGroup;
         const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1.0, 0xff0000);
         // directionalLight.rotateOnAxis(new THREE.Vector3(1.0, 0.0, 0.0), THREE.MathUtils.degToRad(45));
 
@@ -70,7 +71,7 @@ class GenoPrototype {
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
         this.camera.position.set(20, 20, 20);
-        this.camera.lookAt(this.baseMesh.position);
+        this.camera.lookAt(this.baseObjectGroup.position);
 
         this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
         this.renderer.setSize(width, height);
@@ -146,20 +147,31 @@ class GenoPrototype {
         this.renderer.render(this.scene, this.camera); //Render
     }
 
-    loadObj(path) {
+    addBaseObjects() {
+        const baseMeshPath = './resources/GenoPrototype/BaseMesh.obj';
+        const baseCupMeshPath = './resources/GenoPrototype/BaseCupsMesh.obj';
+        const gap = 30;
+        for(let ii = 0; ii < 3; ++ii) {
+            for (let jj = 0; jj < 3; ++jj) {
+                this.loadObj(baseMeshPath, new THREE.Vector3(gap * (ii - 1), 0, gap * (jj - 1)));
+                this.loadObj(baseCupMeshPath, new THREE.Vector3(gap * (ii - 1), 0, gap * (jj - 1)));
+            }
+        }
+    }
+
+    loadObj(path, newPosition = new THREE.Vector3(0, 0, 0)) {
         var scope = this;
         this.objLoader.load(
             // resource URL
             path,
             // called when resource is loaded
             function ( object ) {
-                console.log(object);
-                scope.baseMesh = object.children[0];
+                console.log(scope.baseObjectGroup);
                 if (object.children[0]) {
                     object.children[0].material = scope.transparentMaterial;
+                    object.children[0].position.set(newPosition.x, newPosition.y, newPosition.z);
                 }
-                scope.scene.add( object );
-
+                scope.baseObjectGroup.children.push(object.children[0]);
             },
             // called when loading is in progresses
             function ( xhr ) {
