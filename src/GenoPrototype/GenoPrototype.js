@@ -198,6 +198,8 @@ class GenoPrototype {
                         dummy.position.x = Math.random() * 22 - 11;
                         dummy.position.y = Math.random() * 22 - 11;
                         dummy.position.z = Math.random() * 22 - 11;
+
+                        dummy.scale.x = dummy.scale.y = dummy.scale.z = Math.random();
                     }
                     // const newPos = new THREE.Vector3().copy(dummy.position);
                     // const newDir = newPos.add(newCenter.negate());
@@ -209,6 +211,7 @@ class GenoPrototype {
                     dummy.position.set(dummy.position.x + newCenter.x, 
                         dummy.position.y + newCenter.y, 
                         dummy.position.z + newCenter.z);
+                    
                     dummy.updateMatrix();
                     instancedMesh.setMatrixAt(ii, dummy.matrix);
                     dummy.position.set(0, 0, 0);
