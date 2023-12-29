@@ -13,6 +13,7 @@ class GenoPrototype {
         const height = window.innerHeight;
 
         this.baseObjectGroup = new THREE.Group();
+        this.filteredClusterGroup = new THREE.Group();
 
         // instantiate a loader
         this.objLoader = new OBJLoader();
@@ -37,12 +38,24 @@ class GenoPrototype {
             thickness: 0.0, // Add refraction!
             envMap: hdrEquirect,
             envMapIntensity: 2.0,
-        });
+        }); 
+
+        this.clusteredSphereMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xffff00,
+            transparent: false,
+            opacity: 1.0,
+            depthTest: true,
+            metalness: 0.0,  
+            roughness: 0.8,
+            reflectivity: 0.0,
+        }); 
 
         // load a resource
         this.addBaseObjects();
+        this.addGenoSphereBlob();
 
         this.scene.add(this.baseObjectGroup);
+        this.scene.add(this.filteredClusterGroup);
 
         const texLoader = new THREE.TextureLoader();
         const testImage = texLoader.load('../resources/checker.jpg');
@@ -153,25 +166,59 @@ class GenoPrototype {
         const gap = 30;
         for(let ii = 0; ii < 3; ++ii) {
             for (let jj = 0; jj < 3; ++jj) {
-                this.loadObj(baseMeshPath, new THREE.Vector3(gap * (ii - 1), 0, gap * (jj - 1)));
-                this.loadObj(baseCupMeshPath, new THREE.Vector3(gap * (ii - 1), 0, gap * (jj - 1)));
+                this.loadObj(
+                    baseMeshPath, 
+                    this.baseObjectGroup, 
+                    new THREE.Vector3(gap * (ii - 1), 0, gap * (jj - 1)));
+                this.loadObj(
+                    baseCupMeshPath, 
+                    this.baseObjectGroup, 
+                    new THREE.Vector3(gap * (ii - 1), 0, gap * (jj - 1)));
             }
         }
     }
 
-    loadObj(path, newPosition = new THREE.Vector3(0, 0, 0)) {
+    addGenoSphereBlob() {
+        var scope = this;
+        const baseMeshPath = './resources/GenoPrototype/GenoSphereTopMesh.obj';
+        this.objLoader.load(
+            // resource URL
+            baseMeshPath,
+            // called when resource is loaded
+            function ( object ) {
+                
+                const instancedMesh = new THREE.InstancedMesh(
+                    object.children[0].geometry,
+                    scope.clusteredSphereMaterial,
+                    100);
+                console.log(instancedMesh);
+                scope.filteredClusterGroup.children.push(instancedMesh);
+            },
+            // called when loading is in progresses
+            function ( xhr ) {
+                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+            },
+            // called when loading has errors
+            function ( error ) {
+                console.log( 'An error happened' );
+                console.log(error);
+            }
+        );
+    }
+
+    loadObj(path, parentObject, newPosition = new THREE.Vector3(0, 0, 0)) {
         var scope = this;
         this.objLoader.load(
             // resource URL
             path,
             // called when resource is loaded
             function ( object ) {
-                console.log(scope.baseObjectGroup);
+                console.log(parentObject);
                 if (object.children[0]) {
                     object.children[0].material = scope.transparentMaterial;
                     object.children[0].position.set(newPosition.x, newPosition.y, newPosition.z);
                 }
-                scope.baseObjectGroup.children.push(object.children[0]);
+                parentObject.children.push(object.children[0]);
             },
             // called when loading is in progresses
             function ( xhr ) {
