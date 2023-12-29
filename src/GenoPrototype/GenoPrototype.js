@@ -52,7 +52,7 @@ class GenoPrototype {
 
         // load a resource
         this.addBaseObjects();
-        this.addGenoSphereBlob();
+        this.addGenoSphereBlob(new THREE.Vector3(0.0, 60.0, 0.0));
 
         this.scene.add(this.baseObjectGroup);
         this.scene.add(this.filteredClusterGroup);
@@ -178,7 +178,7 @@ class GenoPrototype {
         }
     }
 
-    addGenoSphereBlob() {
+    addGenoSphereBlob(newCenter) {
         var scope = this;
         const baseMeshPath = './resources/GenoPrototype/GenoSphereTopMesh.obj';
         this.objLoader.load(
@@ -191,6 +191,29 @@ class GenoPrototype {
                     object.children[0].geometry,
                     scope.clusteredSphereMaterial,
                     100);
+
+                const dummy = new THREE.Object3D();
+                for (let ii = 0; ii < 100; ++ii) {
+                    while (dummy.position.length() < 10 || dummy.position.length() > 12) {
+                        dummy.position.x = Math.random() * 22 - 11;
+                        dummy.position.y = Math.random() * 22 - 11;
+                        dummy.position.z = Math.random() * 22 - 11;
+                    }
+                    // const newPos = new THREE.Vector3().copy(dummy.position);
+                    // const newDir = newPos.add(newCenter.negate());
+
+                    // const newQuaternion = new THREE.Quaternion().setFromUnitVectors(
+                    //                         new THREE.Vector3(0, 1, 0),
+                    //                         newDir.normalize());
+                    // dummy.applyQuaternion(newQuaternion);
+                    dummy.position.set(dummy.position.x + newCenter.x, 
+                        dummy.position.y + newCenter.y, 
+                        dummy.position.z + newCenter.z);
+                    dummy.updateMatrix();
+                    instancedMesh.setMatrixAt(ii, dummy.matrix);
+                    dummy.position.set(0, 0, 0);
+                }
+
                 console.log(instancedMesh);
                 scope.filteredClusterGroup.children.push(instancedMesh);
             },
