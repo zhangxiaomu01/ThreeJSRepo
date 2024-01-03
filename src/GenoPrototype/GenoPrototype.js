@@ -41,18 +41,18 @@ class GenoPrototype {
         }); 
 
         this.clusteredSphereMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0xffff00,
+            color: 0xe2d200,
             transparent: false,
             opacity: 1.0,
             depthTest: true,
             metalness: 0.0,  
-            roughness: 0.8,
+            roughness: 1.0,
             reflectivity: 0.0,
         }); 
 
         // load a resource
         this.addBaseObjects();
-        this.addGenoSphereBlob(new THREE.Vector3(0.0, 60.0, 0.0));
+        this.addGenoSphereBlob(new THREE.Vector3(0.0, 90.0, 0.0));
 
         this.scene.add(this.baseObjectGroup);
         this.scene.add(this.filteredClusterGroup);
@@ -190,31 +190,30 @@ class GenoPrototype {
                 const instancedMesh = new THREE.InstancedMesh(
                     object.children[0].geometry,
                     scope.clusteredSphereMaterial,
-                    100);
+                    1000);
 
-                const dummy = new THREE.Object3D();
-                for (let ii = 0; ii < 100; ++ii) {
-                    while (dummy.position.length() < 10 || dummy.position.length() > 12) {
-                        dummy.position.x = Math.random() * 22 - 11;
-                        dummy.position.y = Math.random() * 22 - 11;
-                        dummy.position.z = Math.random() * 22 - 11;
+                
+                for (let ii = 0; ii < 1000; ++ii) {
+                    const dummy = new THREE.Object3D();
+                    while (dummy.position.length() < 15 || dummy.position.length() > 21) {
+                        dummy.position.x = Math.random() * 44 - 22;
+                        dummy.position.y = Math.random() * 44 - 22;
+                        dummy.position.z = Math.random() * 44 - 22;
 
                         dummy.scale.x = dummy.scale.y = dummy.scale.z = Math.random();
                     }
-                    // const newPos = new THREE.Vector3().copy(dummy.position);
-                    // const newDir = newPos.add(newCenter.negate());
+                    const newPos = new THREE.Vector3().copy(dummy.position);
 
-                    // const newQuaternion = new THREE.Quaternion().setFromUnitVectors(
-                    //                         new THREE.Vector3(0, 1, 0),
-                    //                         newDir.normalize());
-                    // dummy.applyQuaternion(newQuaternion);
+                    const newQuaternion = new THREE.Quaternion().setFromUnitVectors(
+                                            new THREE.Vector3(0, 1, 0),
+                                            newPos.normalize());
+                    dummy.applyQuaternion(newQuaternion);
                     dummy.position.set(dummy.position.x + newCenter.x, 
                         dummy.position.y + newCenter.y, 
                         dummy.position.z + newCenter.z);
                     
                     dummy.updateMatrix();
                     instancedMesh.setMatrixAt(ii, dummy.matrix);
-                    dummy.position.set(0, 0, 0);
                 }
 
                 console.log(instancedMesh);
