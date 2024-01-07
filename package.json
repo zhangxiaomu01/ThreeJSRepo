@@ -16,6 +16,8 @@
     "three-nebula": "^10.0.3"
   },
   "devDependencies": {
+    "@babel/core": "7.2.0",
+    "parcel-bundler": "^1.6.1",
     "css-loader": "^6.8.1",
     "style-loader": "^3.3.3",
     "webpack": "^5.89.0",
