@@ -62,8 +62,8 @@ class GenoPrototype {
         
         const axesHelper = new THREE.AxesHelper(150);
 
-        // Light source
-        const pointLight = new THREE.PointLight(0xffffff, 100.0, 300, 1);
+        // Light source 
+        const pointLight = new THREE.PointLight(0xffffff, 10.0, 300, 1);
         pointLight.position.set(40, 40, 0);
         const pointLightHelper = new THREE.PointLightHelper(pointLight, 1.0, 0xff0000ff);
 

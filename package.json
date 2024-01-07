@@ -12,7 +12,8 @@
   "author": "zhangxiaomu",
   "license": "ISC",
   "dependencies": {
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "three-nebula": "^10.0.3"
   },
   "devDependencies": {
     "css-loader": "^6.8.1",
