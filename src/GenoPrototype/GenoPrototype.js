@@ -1,5 +1,6 @@
 import Stats from '../../threejs_r155/examples/jsm/libs/stats.module.js';
 import { THREE, OrbitControls, GUI, RGBELoader, OBJLoader } from '../CommonImports.js';
+import { GenoParticle } from './GenoParticle.js'
 
 /**
  * A class which provides the entry for the geno proto type demo.
@@ -53,6 +54,7 @@ class GenoPrototype {
         // load a resource
         this.addBaseObjects();
         this.addGenoSphereBlob(new THREE.Vector3(0.0, 90.0, 0.0));
+        this.addGenoSphereBlob(new THREE.Vector3(10.0, 80.0, 0.0));
 
         this.scene.add(this.baseObjectGroup);
         this.scene.add(this.filteredClusterGroup);
@@ -93,6 +95,10 @@ class GenoPrototype {
 
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
         document.getElementById("webgl").appendChild(this.renderer.domElement);
+
+        // Particles
+        this.particleSystem = new GenoParticle(this.scene, this.camera, this.renderer);
+        this.particleSystem.initScene();
 
         // Performance monitor
         this.stats = new Stats();
@@ -157,6 +163,7 @@ class GenoPrototype {
 
     render() {
         this.stats.update();
+        this.particleSystem.render();
         this.renderer.render(this.scene, this.camera); //Render
     }
 
@@ -195,12 +202,12 @@ class GenoPrototype {
                 
                 for (let ii = 0; ii < 1000; ++ii) {
                     const dummy = new THREE.Object3D();
-                    while (dummy.position.length() < 15 || dummy.position.length() > 21) {
-                        dummy.position.x = Math.random() * 44 - 22;
-                        dummy.position.y = Math.random() * 44 - 22;
-                        dummy.position.z = Math.random() * 44 - 22;
+                    while (dummy.position.length() < 9 || dummy.position.length() > 12) {
+                        dummy.position.x = Math.random() * 24 - 12;
+                        dummy.position.y = Math.random() * 24 - 12;
+                        dummy.position.z = Math.random() * 24 - 12;
 
-                        dummy.scale.x = dummy.scale.y = dummy.scale.z = Math.random();
+                        dummy.scale.x = dummy.scale.y = dummy.scale.z = Math.random() * 0.7;
                     }
                     const newPos = new THREE.Vector3().copy(dummy.position);
 
@@ -214,6 +221,8 @@ class GenoPrototype {
                     
                     dummy.updateMatrix();
                     instancedMesh.setMatrixAt(ii, dummy.matrix);
+
+                    instancedMesh.setColorAt(ii,  new THREE.Color( Math.random(), Math.random(), Math.random() ));
                 }
 
                 console.log(instancedMesh);

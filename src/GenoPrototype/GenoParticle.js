@@ -21,7 +21,15 @@ import ParticleSystem, {
     RandomDrift,
   } from 'three-nebula';
 
-function getThreeApp() {
+class GenoParticle {
+  constructor(scene, camera, renderer) {
+    this.scene = scene;
+    this.camera = camera;
+    this.renderer = renderer;
+    this.nebulaSystem = null;
+  }
+
+  static getThreeApp() {
     let camera = new THREE.PerspectiveCamera(
         70,
         window.innerWidth / window.innerHeight,
@@ -53,67 +61,97 @@ function getThreeApp() {
     return { scene, camera, renderer };
 }
 
-function animate(nebula, app) {
-    requestAnimationFrame(() => animate(nebula, app));
-    nebula.update();
-    app.renderer.render(app.scene, app.camera);
-}
+  render() {
+    if (this.nebulaSystem) {
+      this.nebulaSystem.update();
+    }
+  }
 
-const createMesh = ({ geometry, material }) =>
-  new THREE.Mesh(geometry, material);
+  createMesh({ geometry, material }) {
+    return new THREE.Mesh(geometry, material);
+  }
 
-const createEmitter = ({ position, body }) => {
-    const emitter = new Emitter();
+  createEmitter({ position, direction, body }) {
+      const emitter = new Emitter();
 
-    return emitter
-        .setRate(new Rate(new Span(5, 10), new Span(0.1, 0.25)))
-        .addInitializers([
-            new Mass(1),
-            new Radius(10),
-            new Life(4, 8),
-            new Body(body),
-            new Position(new BoxZone(0.2)),
-            new RadialVelocity(100, new Vector3D(0, 1, 0), 5),
-        ])
-        .addBehaviours([
-            new Rotate('random', 'random'),
-            new Scale(1, 0.1),
-            new Force(0, 0.1, 0),
-            new RandomDrift(1, 5, 1, 1),
-            // new Spring(1, 5, 0, 0.01, 1),
-        ])
-        .setPosition(position)
-        .emit();
-};
+      return emitter
+          .setRate(new Rate(new Span(5, 10), new Span(0.1, 0.25)))
+          .addInitializers([
+              new Mass(1),
+              new Radius(0.1),
+              new Life(0.85, 1.5),
+              new Body(body),
+              new Position(new BoxZone(0.1)),
+              new RadialVelocity(50, direction, 3),
+          ])
+          .addBehaviours([
+              new Rotate('random', 'random'),
+              new Scale(1, 0.1),
+              // new Force(0, 0.1, 0),
+              new RandomDrift(0.1, 5, .1, 1),
+              // new Spring(1, 5, 0, 0.01, 1),
+          ])
+          .setPosition(position)
+          .emit();
+  }
 
-async function getMeshParticleSystem (scene, camera) {
+  async getMeshParticleSystem () {
+    const gap = 30;
+    const targetPos = new THREE.Vector3(0, 50, 0);
+    const system = new ParticleSystem();
+    for (let ii = 0; ii < 3; ++ii) {
+      for (let jj = 0; jj < 3; ++jj) {
+        let newPosition = {
+            x: (ii - 1) * gap,
+            y: 0,
+            z: (jj - 1) * gap
+        };
+        let sphereEmitter = this.createEmitter({
+          position: newPosition,
+          direction: new THREE.Vector3(targetPos.x - newPosition.x,
+                                        targetPos.y - newPosition.y,
+                                        targetPos.z - newPosition.z).normalize(),
+          body: this.createMesh({
+            geometry: new THREE.SphereGeometry(1, 12, 12),
+            material: new THREE.MeshStandardMaterial({ color: '#e30200' }),
+          }),
+        });
+        system.addEmitter(sphereEmitter)
+      }
+    }
 
-  const system = new ParticleSystem();
-  const sphereEmitter = createEmitter({
-    position: {
-      x: -100,
-      y: -200,
-    },
-    body: createMesh({
-      geometry: new THREE.SphereGeometry(5, 12, 12),
-      material: new THREE.MeshStandardMaterial({ color: '#ff0000' }),
-    }),
-  });
+    const randomInterval = 90;
+    for (let ii = 0; ii < 10; ++ii) {
+        let newPosition = {
+            x: randomInterval * Math.random() - 45,
+            y: 0,
+            z: randomInterval * Math.random() - 45
+        };
+        let sphereEmitter = this.createEmitter({
+          position: newPosition,
+          direction: new THREE.Vector3(targetPos.x - newPosition.x,
+                                        targetPos.y - newPosition.y,
+                                        targetPos.z - newPosition.z).normalize(),
+          body: this.createMesh({
+            geometry: new THREE.SphereGeometry(1, 12, 12),
+            material: new THREE.MeshStandardMaterial({ color: '#e30200' }),
+          }),
+        });
+        system.addEmitter(sphereEmitter)
+    }
+    
 
-  camera.position.z = 400;
-  camera.position.y = -100;
+    return system
+      .addRenderer(new MeshRenderer(this.scene, THREE));
+  }
 
-  return system
-    .addEmitter(sphereEmitter)
-    .addRenderer(new MeshRenderer(scene, THREE));
-}
-
-function initScene() {
-    const app = getThreeApp();
-    getMeshParticleSystem(app.scene, app.camera).then(system => {
+  initScene() {
+    let scope = this;
+    this.getMeshParticleSystem(this.scene, this.camera).then(system => {
         console.log(system);
-        animate(system, app);
+        scope.nebulaSystem = system;
     });
+  }
 }
 
-export {initScene};
+export {GenoParticle};
