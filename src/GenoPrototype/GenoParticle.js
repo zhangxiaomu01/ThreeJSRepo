@@ -27,6 +27,26 @@ class GenoParticle {
     this.camera = camera;
     this.renderer = renderer;
     this.nebulaSystem = null;
+
+    // Particle parameters
+    this.particleSphereSize = 1.0;
+    this.bottomParticleParamter = {
+      numPan: {start: 5, end : 10},
+      timePan: {start: 0.1, end: 0.25},
+      mass: 1,
+      radius: 0.1,
+      life: {start: 0.85, end: 1.5},
+      position: new BoxZone(0.1),
+      radialVelocity: {
+        radius: 50,
+        direction: new THREE.Vector3(0, 1, 0),
+        theta: 3
+      }
+    };
+
+    // Bottom emitter parameters
+    this.randomBottomEmitterNumber = 15;
+    this.bottomParEndPosition  = new THREE.Vector3(0, 50, 0);
   }
 
   static getThreeApp() {
@@ -67,22 +87,30 @@ class GenoParticle {
     }
   }
 
-  createMesh({ geometry, material }) {
-    return new THREE.Mesh(geometry, material);
+  createMesh() {
+    return new THREE.Mesh(
+      new THREE.SphereGeometry(this.particleSphereSize, 12, 12), 
+      new THREE.MeshStandardMaterial({ color: '#e30200' }));
   }
 
   createEmitter({ position, direction, body }) {
       const emitter = new Emitter();
+      let param = this.bottomParticleParamter;
+      param.radialVelocity.direction = direction;
 
       return emitter
-          .setRate(new Rate(new Span(5, 10), new Span(0.1, 0.25)))
+          .setRate(new Rate(
+            new Span(param.numPan.start, param.numPan.end), 
+            new Span(param.timePan.start, param.timePan.end)))
           .addInitializers([
-              new Mass(1),
-              new Radius(0.1),
-              new Life(0.85, 1.5),
+              new Mass(param.mass),
+              new Radius(param.radius),
+              new Life(param.life.start, param.life.end),
               new Body(body),
-              new Position(new BoxZone(0.1)),
-              new RadialVelocity(50, direction, 3),
+              new Position(param.position),
+              new RadialVelocity(param.radialVelocity.radius,
+                param.radialVelocity.direction,
+                param.radialVelocity.theta),
           ])
           .addBehaviours([
               new Rotate('random', 'random'),
@@ -97,7 +125,7 @@ class GenoParticle {
 
   async getMeshParticleSystem () {
     const gap = 30;
-    const targetPos = new THREE.Vector3(0, 50, 0);
+    const targetPos = this.bottomParEndPosition;
     const system = new ParticleSystem();
     for (let ii = 0; ii < 3; ++ii) {
       for (let jj = 0; jj < 3; ++jj) {
@@ -111,31 +139,25 @@ class GenoParticle {
           direction: new THREE.Vector3(targetPos.x - newPosition.x,
                                         targetPos.y - newPosition.y,
                                         targetPos.z - newPosition.z).normalize(),
-          body: this.createMesh({
-            geometry: new THREE.SphereGeometry(1, 12, 12),
-            material: new THREE.MeshStandardMaterial({ color: '#e30200' }),
-          }),
+          body: this.createMesh(),
         });
         system.addEmitter(sphereEmitter)
       }
     }
 
     const randomInterval = 90;
-    for (let ii = 0; ii < 10; ++ii) {
+    for (let ii = 0; ii < this.randomBottomEmitterNumber; ++ii) {
         let newPosition = {
-            x: randomInterval * Math.random() - 45,
+            x: randomInterval * Math.random() - randomInterval / 2,
             y: 0,
-            z: randomInterval * Math.random() - 45
+            z: randomInterval * Math.random() - randomInterval / 2
         };
         let sphereEmitter = this.createEmitter({
           position: newPosition,
           direction: new THREE.Vector3(targetPos.x - newPosition.x,
                                         targetPos.y - newPosition.y,
                                         targetPos.z - newPosition.z).normalize(),
-          body: this.createMesh({
-            geometry: new THREE.SphereGeometry(1, 12, 12),
-            material: new THREE.MeshStandardMaterial({ color: '#e30200' }),
-          }),
+          body: this.createMesh(),
         });
         system.addEmitter(sphereEmitter)
     }
