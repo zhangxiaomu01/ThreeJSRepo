@@ -53,6 +53,7 @@ class GenoPrototype {
 
         // load a resource
         this.addBaseObjects();
+        this.addFilterLayer(new THREE.Vector3(0.0, 50, 0.0));
         this.addGenoSphereBlob(new THREE.Vector3(0.0, 90.0, 0.0));
         this.addGenoSphereBlob(new THREE.Vector3(10.0, 80.0, 0.0));
 
@@ -238,6 +239,20 @@ class GenoPrototype {
                 console.log(error);
             }
         );
+    }
+
+    addFilterLayer(newCenter) {
+        let middleMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(80, 80, 100, 100),
+            new THREE.MeshBasicMaterial({
+                color: 0x2596be,
+                wireframe: true,
+            })
+        );
+
+        middleMesh.position.set(newCenter.x, newCenter.y, newCenter.z);
+        middleMesh.rotateX(Math.PI / 2);
+        this.scene.add(middleMesh);
     }
 
     loadObj(path, parentObject, newPosition = new THREE.Vector3(0, 0, 0)) {
