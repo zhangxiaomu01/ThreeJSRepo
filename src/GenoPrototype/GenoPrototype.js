@@ -292,17 +292,36 @@ class GenoPrototype {
     }
 
     addFilterLayer(newCenter) {
-        let middleMesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(80, 80, 50, 50),
-            new THREE.MeshBasicMaterial({
-                color: 0x2596be,
-                wireframe: true,
-            })
-        );
+        var scope = this;
+        const baseMeshPath = './resources/GenoPrototype/PlaneMesh.obj';
+        this.objLoader.load(
+            // resource URL
+            baseMeshPath,
+            // called when resource is loaded
+            function ( object ) {
 
-        middleMesh.position.set(newCenter.x, newCenter.y, newCenter.z);
-        middleMesh.rotateX(Math.PI / 2);
-        this.scene.add(middleMesh);
+                let middleMesh = new THREE.Mesh(
+                    object.children[0].geometry,
+                    new THREE.MeshBasicMaterial({
+                        color: 0x2596be,
+                        wireframe: true,
+                    })
+                );
+                
+                middleMesh.position.set(newCenter.x, newCenter.y + 10, newCenter.z);
+                
+                scope.scene.add(middleMesh);
+            },
+            // called when loading is in progresses
+            function ( xhr ) {
+                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+            },
+            // called when loading has errors
+            function ( error ) {
+                console.log( 'An error happened' );
+                console.log(error);
+            }
+        );
     }
 
     loadObj(path, parentObject, newPosition = new THREE.Vector3(0, 0, 0)) {

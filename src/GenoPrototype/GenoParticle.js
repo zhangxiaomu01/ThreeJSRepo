@@ -3,6 +3,7 @@ import { THREE } from '../CommonImports.js';
 import ParticleSystem, {
     Body,
     BoxZone,
+    Color,
     Emitter,
     Gravity,
     Life,
@@ -19,6 +20,7 @@ import ParticleSystem, {
     Spring,
     Vector3D,
     RandomDrift,
+    Attraction,
   } from 'three-nebula';
 
 class GenoParticle {
@@ -32,7 +34,7 @@ class GenoParticle {
     // Particle parameters
     this.particleSphereSize = 1.0;
     this.bottomParticleParamter = {
-      numPan: {start: 5, end : 10},
+      numPan: {start: 2, end : 5},
       timePan: {start: 0.1, end: 0.25},
       mass: 1,
       radius: 0.1,
@@ -40,8 +42,18 @@ class GenoParticle {
       position: new BoxZone(0.1),
       radialVelocity: {
         radius: 50,
-        direction: new THREE.Vector3(0, 1, 0),
+        direction: new THREE.Vector3(0, 1, 0), 
         theta: 3
+      },
+      scale: {
+        start: 1.0,
+        end: 0.1
+      },
+      randomDrift: {
+        driftX: 0.1,
+        driftY: 5,
+        delay: 0.1,
+        life: 1.0
       }
     };
     this.upParticleParamter = {
@@ -55,6 +67,16 @@ class GenoParticle {
         radius: 50,
         direction: new THREE.Vector3(0, 1, 0),
         theta: 10
+      },
+      scale: {
+        start: 1.0,
+        end: 0.1
+      },
+      randomDrift: {
+        driftX: 0.1,
+        driftY: 5,
+        delay: 0.1,
+        life: 1.0
       }
     };
 
@@ -138,10 +160,16 @@ class GenoParticle {
           ])
           .addBehaviours([
               new Rotate('random', 'random'),
-              new Scale(1, 0.1),
+              new Scale(param.scale.start, param.scale.end),
               // new Force(0, 0.1, 0),
-              new RandomDrift(0.1, 5, .1, 1),
+              new RandomDrift(
+                param.randomDrift.driftX, 
+                param.randomDrift.driftY, 
+                param.randomDrift.delay, 
+                param.randomDrift.life),
+              // new Attraction(new Vector3D(0.0, 45.0, 0.0), 2.0, 3.0),
               // new Spring(1, 5, 0, 0.01, 1),
+              // new Color(new THREE.Color(), new THREE.Color(1.0, 0.0, 0.0)),
           ])
           .setPosition(position)
           .emit();
@@ -152,41 +180,94 @@ class GenoParticle {
     const gap = 30;
     const targetPos = this.bottomParEndPosition;
     const system = new ParticleSystem();
+    let colors = [
+      new THREE.Color(1, 0.592, 0.259),
+      new THREE.Color(112 / 255.0, 11 / 255.0, 156 / 255.0),
+      new THREE.Color(0.969, 0.0, 0.176)
+    ];
+    if (this.config && this.config.upParticleConfigs.upParticleColors) {
+      colors = this.config.upParticleConfigs.upParticleColors;
+    }
+
+    let orangeMesh = this.createMesh(new THREE.MeshStandardMaterial({ color: colors[0] }));
+    let purpleMesh = this.createMesh(new THREE.MeshStandardMaterial({ color: colors[1] }));
+    let redMesh = this.createMesh(new THREE.MeshStandardMaterial({ color: colors[2] }));
+
     for (let ii = 0; ii < 3; ++ii) {
       for (let jj = 0; jj < 3; ++jj) {
+        let randomOffsetX = Math.random() * 2 - 1;
+        let randomOffsetZ = Math.random() * 2 - 1;
         let newPosition = {
-            x: (ii - 1) * gap,
+            x: (ii - 1) * gap + randomOffsetX,
             y: 0,
-            z: (jj - 1) * gap
+            z: (jj - 1) * gap + randomOffsetZ
         };
-        let sphereEmitter = this.createEmitter({
+        let sphereEmitter0 = this.createEmitter({
           position: newPosition,
           direction: new THREE.Vector3(targetPos.x - newPosition.x,
                                         targetPos.y - newPosition.y,
                                         targetPos.z - newPosition.z).normalize(),
-          body: this.createMesh(),
+          body: orangeMesh,
           type: 'bottom'
         });
-        system.addEmitter(sphereEmitter);
+        let sphereEmitter1 = this.createEmitter({
+          position: newPosition,
+          direction: new THREE.Vector3(targetPos.x - newPosition.x,
+                                        targetPos.y - newPosition.y,
+                                        targetPos.z - newPosition.z).normalize(),
+          body: purpleMesh,
+          type: 'bottom'
+        });
+        let sphereEmitter2 = this.createEmitter({
+          position: newPosition,
+          direction: new THREE.Vector3(targetPos.x - newPosition.x,
+                                        targetPos.y - newPosition.y,
+                                        targetPos.z - newPosition.z).normalize(),
+          body: redMesh,
+          type: 'bottom'
+        });
+        system.addEmitter(sphereEmitter0);
+        system.addEmitter(sphereEmitter1);
+        system.addEmitter(sphereEmitter2);
       }
     }
 
     const randomInterval = 90;
     for (let ii = 0; ii < this.randomBottomEmitterNumber; ++ii) {
+        let randomOffsetX = Math.random() * 6 - 3;
+        let randomOffsetZ = Math.random() * 6 - 3;
         let newPosition = {
-            x: randomInterval * Math.random() - randomInterval / 2,
+            x: randomInterval * Math.random() - randomInterval / 2 + randomOffsetX,
             y: 0,
-            z: randomInterval * Math.random() - randomInterval / 2
+            z: randomInterval * Math.random() - randomInterval / 2 + randomOffsetZ
         };
-        let sphereEmitter = this.createEmitter({
+        let sphereEmitter0 = this.createEmitter({
           position: newPosition,
           direction: new THREE.Vector3(targetPos.x - newPosition.x,
                                         targetPos.y - newPosition.y,
                                         targetPos.z - newPosition.z).normalize(),
-          body: this.createMesh(),
+          body: orangeMesh,
           type: 'bottom'
         });
-        system.addEmitter(sphereEmitter);
+        let sphereEmitter1 = this.createEmitter({
+          position: newPosition,
+          direction: new THREE.Vector3(targetPos.x - newPosition.x,
+                                        targetPos.y - newPosition.y,
+                                        targetPos.z - newPosition.z).normalize(),
+          body: purpleMesh,
+          type: 'bottom'
+        });
+        let sphereEmitter2 = this.createEmitter({
+          position: newPosition,
+          direction: new THREE.Vector3(targetPos.x - newPosition.x,
+                                        targetPos.y - newPosition.y,
+                                        targetPos.z - newPosition.z).normalize(),
+          body: redMesh,
+          type: 'bottom'
+        });
+        system.addEmitter(sphereEmitter0);
+        system.addEmitter(sphereEmitter1);
+        system.addEmitter(sphereEmitter2);
     }
     
     // Create up particles
