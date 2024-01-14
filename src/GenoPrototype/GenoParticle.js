@@ -22,10 +22,11 @@ import ParticleSystem, {
   } from 'three-nebula';
 
 class GenoParticle {
-  constructor(scene, camera, renderer) {
+  constructor(scene, camera, renderer, config = {}) {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
+    this.config = config;
     this.nebulaSystem = null;
 
     // Particle parameters
@@ -43,6 +44,24 @@ class GenoParticle {
         theta: 3
       }
     };
+    this.upParticleParamter = {
+      numPan: {start: 15, end : 25},
+      timePan: {start: 0.1, end: 0.25},
+      mass: 1,
+      radius: 0.1,
+      life: {start: 1.25, end: 1.5},
+      position: new BoxZone(0.3),
+      radialVelocity: {
+        radius: 50,
+        direction: new THREE.Vector3(0, 1, 0),
+        theta: 10
+      }
+    };
+
+    this.upParticleStartingPosition = 
+      (config.upParticleConfigs && config.upParticleConfigs.upParticlePos)
+      ? config.upParticleConfigs.upParticlePos 
+      : new THREE.Vector3(0.0, 50, 0.0);
 
     // Bottom emitter parameters
     this.randomBottomEmitterNumber = 15;
@@ -87,15 +106,20 @@ class GenoParticle {
     }
   }
 
-  createMesh() {
+  createMesh(material) {
+    let meshMaterial = material ? 
+      material : new THREE.MeshStandardMaterial({ color: '#e30200' });
     return new THREE.Mesh(
       new THREE.SphereGeometry(this.particleSphereSize, 12, 12), 
-      new THREE.MeshStandardMaterial({ color: '#e30200' }));
+      meshMaterial);
   }
 
-  createEmitter({ position, direction, body }) {
+  createEmitter({ position, direction, body, type }) {
       const emitter = new Emitter();
-      let param = this.bottomParticleParamter;
+      let param = 
+        type === 'bottom' 
+        ? this.bottomParticleParamter
+        : this.upParticleParamter;
       param.radialVelocity.direction = direction;
 
       return emitter
@@ -124,6 +148,7 @@ class GenoParticle {
   }
 
   async getMeshParticleSystem () {
+    // Create bottom particles
     const gap = 30;
     const targetPos = this.bottomParEndPosition;
     const system = new ParticleSystem();
@@ -140,8 +165,9 @@ class GenoParticle {
                                         targetPos.y - newPosition.y,
                                         targetPos.z - newPosition.z).normalize(),
           body: this.createMesh(),
+          type: 'bottom'
         });
-        system.addEmitter(sphereEmitter)
+        system.addEmitter(sphereEmitter);
       }
     }
 
@@ -158,10 +184,32 @@ class GenoParticle {
                                         targetPos.y - newPosition.y,
                                         targetPos.z - newPosition.z).normalize(),
           body: this.createMesh(),
+          type: 'bottom'
         });
-        system.addEmitter(sphereEmitter)
+        system.addEmitter(sphereEmitter);
     }
     
+    // Create up particles
+    const maxUpEmitterNumber = 3;
+    let upParticleConfigs = this.config.upParticleConfigs;
+    if (upParticleConfigs 
+        && upParticleConfigs.upParticleColors 
+        && upParticleConfigs.upParticleDirections) {
+      let upEmitterColors = upParticleConfigs.upParticleColors;
+      let upEmitterDirections = upParticleConfigs.upParticleDirections;
+      for (let ii = 0; ii < maxUpEmitterNumber; ++ii) {
+        let direction = upEmitterDirections[ii];
+        direction.x = direction.x * 2;
+        direction.z = direction.z * 2;
+        let upEmitter = this.createEmitter({
+          position: this.upParticleStartingPosition,
+          direction: direction.normalize(),
+          body: this.createMesh(new THREE.MeshStandardMaterial({ color: upEmitterColors[ii] })),
+          type: 'up'
+        });
+        system.addEmitter(upEmitter);
+      }
+    }
 
     return system
       .addRenderer(new MeshRenderer(this.scene, THREE));

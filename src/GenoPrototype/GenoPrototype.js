@@ -51,11 +51,29 @@ class GenoPrototype {
             reflectivity: 0.0,
         }); 
 
+        const filterLayerPosition = new THREE.Vector3(0.0, 50, 0.0);
+        const orangeGeoSphereBlobPosition = new THREE.Vector3(0.0, 115.0, 10.0);
+        const purpleGeoSphereBlobPosition = new THREE.Vector3(10.0, 110.0, -10.0);
+        const redGeoSphereBlobPosition = new THREE.Vector3(-10.0, 110.0, -10.0);
+        const orangeColor = new THREE.Color(1, 0.592, 0.259);
+        const purpleColor = new THREE.Color(112 / 255.0, 11 / 255.0, 156 / 255.0);
+        const redColor = new THREE.Color(0.969, 0.0, 0.176);
+
         // load a resource
         this.addBaseObjects();
-        this.addFilterLayer(new THREE.Vector3(0.0, 50, 0.0));
-        this.addGenoSphereBlob(new THREE.Vector3(0.0, 90.0, 0.0));
-        this.addGenoSphereBlob(new THREE.Vector3(10.0, 80.0, 0.0));
+        this.addFilterLayer(filterLayerPosition);
+        this.addGenoSphereBlob(
+            orangeGeoSphereBlobPosition, 
+            this.clusteredSphereMaterial.clone(),
+            orangeColor);
+        this.addGenoSphereBlob(
+            purpleGeoSphereBlobPosition, 
+            this.clusteredSphereMaterial.clone(),
+            purpleColor);
+        this.addGenoSphereBlob(
+            redGeoSphereBlobPosition, 
+            this.clusteredSphereMaterial.clone(),
+            redColor);
 
         this.scene.add(this.baseObjectGroup);
         this.scene.add(this.filteredClusterGroup);
@@ -98,7 +116,26 @@ class GenoPrototype {
         document.getElementById("webgl").appendChild(this.renderer.domElement);
 
         // Particles
-        this.particleSystem = new GenoParticle(this.scene, this.camera, this.renderer);
+        this.particleSystem = new GenoParticle(
+            this.scene, 
+            this.camera, 
+            this.renderer,
+            {
+                upParticleConfigs: {
+                    upParticlePos: filterLayerPosition,
+                    upParticleColors: [
+                        orangeColor,
+                        purpleColor,
+                        redColor
+                    ],
+                    upParticleDirections: [
+                        orangeGeoSphereBlobPosition.clone(),
+                        purpleGeoSphereBlobPosition.clone(),
+                        redGeoSphereBlobPosition.clone()
+                    ]
+                },
+                
+            });
         this.particleSystem.initScene();
 
         // Performance monitor
@@ -186,7 +223,7 @@ class GenoPrototype {
         }
     }
 
-    addGenoSphereBlob(newCenter) {
+    addGenoSphereBlob(newCenter, material, newColor) {
         var scope = this;
         const baseMeshPath = './resources/GenoPrototype/GenoSphereTopMesh.obj';
         this.objLoader.load(
@@ -195,11 +232,13 @@ class GenoPrototype {
             // called when resource is loaded
             function ( object ) {
                 
+                material.color = newColor;
                 const instancedMesh = new THREE.InstancedMesh(
                     object.children[0].geometry,
-                    scope.clusteredSphereMaterial,
+                    material,
                     1000);
-
+                
+                const originalColor = newColor;
                 
                 for (let ii = 0; ii < 1000; ++ii) {
                     const dummy = new THREE.Object3D();
@@ -222,8 +261,19 @@ class GenoPrototype {
                     
                     dummy.updateMatrix();
                     instancedMesh.setMatrixAt(ii, dummy.matrix);
-
-                    instancedMesh.setColorAt(ii,  new THREE.Color( Math.random(), Math.random(), Math.random() ));
+                    
+                    const randomColorShreshold = 0.75;
+                    let randomColorR = Math.random();
+                    let randomColorG = Math.random();
+                    let randomColorB = Math.random();
+                    if (randomColorR < randomColorShreshold) randomColorR = randomColorShreshold;
+                    if (randomColorG < randomColorShreshold) randomColorG = randomColorShreshold;
+                    if (randomColorB < randomColorShreshold) randomColorB = randomColorShreshold;
+                    instancedMesh.setColorAt(ii, 
+                        new THREE.Color( 
+                            randomColorR * originalColor.r, 
+                            randomColorG * originalColor.g, 
+                            randomColorB * originalColor.b ));
                 }
 
                 console.log(instancedMesh);
@@ -243,7 +293,7 @@ class GenoPrototype {
 
     addFilterLayer(newCenter) {
         let middleMesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(80, 80, 100, 100),
+            new THREE.PlaneGeometry(80, 80, 50, 50),
             new THREE.MeshBasicMaterial({
                 color: 0x2596be,
                 wireframe: true,
