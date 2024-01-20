@@ -32,7 +32,27 @@ class GenoParticle {
     this.nebulaSystem = null;
 
     // Particle parameters
+    let particleColors = [
+      new THREE.Color(1, 0.592, 0.259),
+      new THREE.Color(112 / 255.0, 11 / 255.0, 156 / 255.0),
+      new THREE.Color(0.969, 0.0, 0.176)
+    ];
+    if (this.config && this.config.upParticleConfigs.upParticleColors) {
+      particleColors = this.config.upParticleConfigs.upParticleColors;
+    }
     this.particleSphereSize = 1.0;
+    let particleGeometry = new THREE.SphereGeometry(this.particleSphereSize, 12, 12);
+    let orangeMesh = new THREE.Mesh(
+      particleGeometry, 
+      new THREE.MeshStandardMaterial({ color: particleColors[0] }));
+    let purpleMesh = new THREE.Mesh(
+      particleGeometry, 
+      new THREE.MeshStandardMaterial({ color: particleColors[1] }));
+    let redMesh = new THREE.Mesh(
+      particleGeometry, 
+      new THREE.MeshStandardMaterial({ color: particleColors[2] }));
+    this.particleMeshes = [orangeMesh, purpleMesh, redMesh];
+
     this.bottomParticleParamter = {
       numPan: {start: 2, end : 5},
       timePan: {start: 0.1, end: 0.25},
@@ -90,50 +110,15 @@ class GenoParticle {
     this.bottomParEndPosition  = new THREE.Vector3(0, 50, 0);
   }
 
-  static getThreeApp() {
-    let camera = new THREE.PerspectiveCamera(
-        70,
-        window.innerWidth / window.innerHeight,
-        1,
-        1000
-      );
-    camera.position.z = 100;
-
-    let scene = new THREE.Scene();
-
-    const directionalLight = new THREE.DirectionalLight(0xffffffff, 1.0);
-    directionalLight.position.set(0.0, 60, 40);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-
-    scene.add(directionalLight);
-    scene.add(ambientLight);
-    
-    let renderer = new THREE.WebGLRenderer();
-
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    // renderer.setClearColor("black");
-    renderer.setClearColor(0x000000, 1.0);
-
-    // document.body.appendChild(renderer.domElement);
-    document.getElementById("webgl").appendChild(renderer.domElement);
-
-    return { scene, camera, renderer };
-}
-
   render() {
     if (this.nebulaSystem) {
       this.nebulaSystem.update();
     }
   }
 
-  createMesh(material) {
-    let meshMaterial = material ? 
-      material : new THREE.MeshStandardMaterial({ color: '#e30200' });
-    return new THREE.Mesh(
-      new THREE.SphereGeometry(this.particleSphereSize, 12, 12), 
-      meshMaterial);
+  createMesh(meshId) {
+    if (meshId < 0 || meshId > 2) return null;
+    return this.particleMeshes[meshId];
   }
 
   createEmitter({ position, direction, body, type }) {
@@ -189,9 +174,9 @@ class GenoParticle {
       colors = this.config.upParticleConfigs.upParticleColors;
     }
 
-    let orangeMesh = this.createMesh(new THREE.MeshStandardMaterial({ color: colors[0] }));
-    let purpleMesh = this.createMesh(new THREE.MeshStandardMaterial({ color: colors[1] }));
-    let redMesh = this.createMesh(new THREE.MeshStandardMaterial({ color: colors[2] }));
+    let orangeMesh = this.createMesh(/* meshId = */ 0);
+    let purpleMesh = this.createMesh(/* meshId = */ 1);
+    let redMesh = this.createMesh(/* meshId = */ 2);
 
     for (let ii = 0; ii < 3; ++ii) {
       for (let jj = 0; jj < 3; ++jj) {
@@ -285,7 +270,7 @@ class GenoParticle {
         let upEmitter = this.createEmitter({
           position: this.upParticleStartingPosition,
           direction: direction.normalize(),
-          body: this.createMesh(new THREE.MeshStandardMaterial({ color: upEmitterColors[ii] })),
+          body: this.createMesh(/* meshId = */ ii),
           type: 'up'
         });
         system.addEmitter(upEmitter);
