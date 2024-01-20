@@ -165,14 +165,6 @@ class GenoParticle {
     const gap = 30;
     const targetPos = this.bottomParEndPosition;
     const system = new ParticleSystem();
-    let colors = [
-      new THREE.Color(1, 0.592, 0.259),
-      new THREE.Color(112 / 255.0, 11 / 255.0, 156 / 255.0),
-      new THREE.Color(0.969, 0.0, 0.176)
-    ];
-    if (this.config && this.config.upParticleConfigs.upParticleColors) {
-      colors = this.config.upParticleConfigs.upParticleColors;
-    }
 
     let orangeMesh = this.createMesh(/* meshId = */ 0);
     let purpleMesh = this.createMesh(/* meshId = */ 1);
@@ -217,7 +209,7 @@ class GenoParticle {
       }
     }
 
-    const randomInterval = 90;
+    const randomInterval = 80;
     for (let ii = 0; ii < this.randomBottomEmitterNumber; ++ii) {
         let randomOffsetX = Math.random() * 6 - 3;
         let randomOffsetZ = Math.random() * 6 - 3;
@@ -259,9 +251,7 @@ class GenoParticle {
     const maxUpEmitterNumber = 3;
     let upParticleConfigs = this.config.upParticleConfigs;
     if (upParticleConfigs 
-        && upParticleConfigs.upParticleColors 
         && upParticleConfigs.upParticleDirections) {
-      let upEmitterColors = upParticleConfigs.upParticleColors;
       let upEmitterDirections = upParticleConfigs.upParticleDirections;
       for (let ii = 0; ii < maxUpEmitterNumber; ++ii) {
         let direction = upEmitterDirections[ii];
