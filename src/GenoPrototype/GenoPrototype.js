@@ -1,3 +1,4 @@
+import { PlaneGeometry } from '../../threejs_r155/build/three.module.js';
 import Stats from '../../threejs_r155/examples/jsm/libs/stats.module.js';
 import { THREE, OrbitControls, GUI, RGBELoader, OBJLoader } from '../CommonImports.js';
 import { GenoParticle } from './GenoParticle.js'
@@ -50,6 +51,11 @@ class GenoPrototype {
             roughness: 1.0,
             reflectivity: 0.0,
         }); 
+
+        this.filteredLayerMaterial = new THREE.MeshBasicMaterial({
+            color: 0x2596be,
+            wireframe: true,
+        });
 
         const filterLayerPosition = new THREE.Vector3(0.0, 50, 0.0);
         const orangeGeoSphereBlobPosition = new THREE.Vector3(0.0, 115.0, 10.0);
@@ -200,6 +206,17 @@ class GenoPrototype {
     }
 
     render() {
+        // Update shader uniform;
+        if (this.filteredLayerMaterial.userData.shader 
+            && this.filteredLayerMaterial.userData.shader.uniforms.uTime) {
+            let previousTime = this.filteredLayerMaterial.userData.shader.uniforms.uTime.value;
+            
+            if (previousTime > 99999999.0) previousTime = 0.0;
+
+            this.filteredLayerMaterial.userData.shader.uniforms.uTime.value = previousTime + 0.1;
+        }
+
+        // Update fps
         this.stats.update();
         this.particleSystem.render();
         this.renderer.render(this.scene, this.camera); //Render
@@ -292,36 +309,48 @@ class GenoPrototype {
     }
 
     addFilterLayer(newCenter) {
-        var scope = this;
-        const baseMeshPath = './resources/GenoPrototype/PlaneMesh.obj';
-        this.objLoader.load(
-            // resource URL
-            baseMeshPath,
-            // called when resource is loaded
-            function ( object ) {
 
-                let middleMesh = new THREE.Mesh(
-                    object.children[0].geometry,
-                    new THREE.MeshBasicMaterial({
-                        color: 0x2596be,
-                        wireframe: true,
-                    })
-                );
-                
-                middleMesh.position.set(newCenter.x, newCenter.y + 10, newCenter.z);
-                
-                scope.scene.add(middleMesh);
-            },
-            // called when loading is in progresses
-            function ( xhr ) {
-                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-            },
-            // called when loading has errors
-            function ( error ) {
-                console.log( 'An error happened' );
-                console.log(error);
-            }
+        const fileterLayerMat = new THREE.MeshBasicMaterial({
+            color: 0x2596be,
+            wireframe: true,
+        });
+
+        fileterLayerMat.onBeforeCompile = function ( shader ) {
+            shader.uniforms.uTime = { value: 0.0 };
+
+            console.log(shader.attributes);
+
+            shader.vertexShader = `
+            uniform float uTime;
+            `
+            + shader.vertexShader;
+
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                [
+                    `
+                    float currentPositionY = 2.8 * sin(0.11 * (uTime + position.x + position.y));
+
+                    vec3 transformed = vec3(position.x, position.y, position.z + currentPositionY);
+                    `,
+                ].join( '\n' )
+            );
+
+            shader.fragmentShader = shader.fragmentShader;
+            fileterLayerMat.userData.shader = shader;
+        };
+
+        this.filteredLayerMaterial = fileterLayerMat;
+
+        let middleMesh = new THREE.Mesh(
+            new PlaneGeometry(100, 100, 50, 50),
+            this.filteredLayerMaterial
         );
+        
+        middleMesh.position.set(newCenter.x, newCenter.y, newCenter.z);
+        middleMesh.rotateX( Math.PI / 2 );
+        
+        this.scene.add(middleMesh);
     }
 
     loadObj(path, parentObject, newPosition = new THREE.Vector3(0, 0, 0)) {
