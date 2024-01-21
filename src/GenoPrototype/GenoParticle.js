@@ -42,15 +42,30 @@ class GenoParticle {
     }
     this.particleSphereSize = 1.0;
     let particleGeometry = new THREE.SphereGeometry(this.particleSphereSize, 12, 12);
+    let orangeParticleMat = new THREE.MeshPhysicalMaterial({ color: particleColors[0],
+      depthTest: true,
+      metalness: 0.0,  
+      roughness: 0.0,
+      // sheen: 0.4,
+      // sheenColor: 0xffffff,
+      clearcoat: 0.75,
+      clearcoatRoughness: 0.0,
+      envMapIntensity: 0.01,
+      reflectivity: 0.5});
+    let purpleParticleMat = orangeParticleMat.clone();
+    purpleParticleMat.color = particleColors[1];
+    let redParticleMat = orangeParticleMat.clone();
+    redParticleMat.color = particleColors[2];
+
     let orangeMesh = new THREE.Mesh(
       particleGeometry, 
-      new THREE.MeshStandardMaterial({ color: particleColors[0] }));
+      orangeParticleMat);
     let purpleMesh = new THREE.Mesh(
       particleGeometry, 
-      new THREE.MeshStandardMaterial({ color: particleColors[1] }));
+      purpleParticleMat);
     let redMesh = new THREE.Mesh(
       particleGeometry, 
-      new THREE.MeshStandardMaterial({ color: particleColors[2] }));
+      redParticleMat);
     this.particleMeshes = [orangeMesh, purpleMesh, redMesh];
 
     this.bottomParticleParamter = {

@@ -26,8 +26,18 @@ class GenoPrototype {
               hdrEquirect.mapping = THREE.EquirectangularReflectionMapping; 
             }
           );
+
+        const hdrMap02 = new RGBELoader().load(
+            "./resources/GenoPrototype/remmac_HDR_nightReflection.hdr",  
+            () => { 
+                hdrMap02.mapping = THREE.EquirectangularReflectionMapping; 
+            }
+        );
+    
     
         this.scene = new THREE.Scene();
+        this.scene.environment = hdrMap02;
+
         this.transparentMaterial = new THREE.MeshPhysicalMaterial({
             color: 0x000000,
             transparent: true,
@@ -39,7 +49,7 @@ class GenoPrototype {
             transmission: 1, // Add transparency
             thickness: 0.0, // Add refraction!
             envMap: hdrEquirect,
-            envMapIntensity: 2.0,
+            envMapIntensity: 6.0,
         }); 
 
         this.clusteredSphereMaterial = new THREE.MeshPhysicalMaterial({
@@ -48,8 +58,14 @@ class GenoPrototype {
             opacity: 1.0,
             depthTest: true,
             metalness: 0.0,  
-            roughness: 1.0,
-            reflectivity: 0.0,
+            roughness: 0.5,
+            // sheen: 0.4,
+            // sheenColor: 0xffffff,
+            clearcoat: 0.8,
+            clearcoatRoughness: 0.75,
+            reflectivity: 0.6,
+            envMap: hdrMap02,
+            envMapIntensity: 0.02,
         }); 
 
         this.filteredLayerMaterial = new THREE.MeshBasicMaterial({
@@ -90,24 +106,38 @@ class GenoPrototype {
         const axesHelper = new THREE.AxesHelper(150);
 
         // Light source 
-        const pointLight = new THREE.PointLight(0xffffff, 10.0, 300, 1);
-        pointLight.position.set(40, 40, 0);
+        const pointLight = new THREE.PointLight(0xffffff, 200.0, 300, 1);
+        pointLight.position.set(0, 50, 0);
         const pointLightHelper = new THREE.PointLightHelper(pointLight, 1.0, 0xff0000ff);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffffff, 30.0);
+        const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
         directionalLight.position.set(0.0, 60, 40);
         directionalLight.target = this.baseObjectGroup;
         const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1.0, 0xff0000);
         // directionalLight.rotateOnAxis(new THREE.Vector3(1.0, 0.0, 0.0), THREE.MathUtils.degToRad(45));
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+
+
+        let particleMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(10, 12, 12), 
+            new THREE.MeshStandardMaterial({ color: new THREE.Color(0.5, 0.6, 0.3),
+                  depthTest: true,
+                  metalness: 0.1,  
+                  roughness: 0.1,
+                  reflectivity: 0.5}));
+
+        particleMesh.position.y = 50;
+
+        // this.scene.add(particleMesh);
+
 
         this.scene.add(axesHelper);
         this.scene.add(pointLight);
         this.scene.add(pointLightHelper);
         this.scene.add(ambientLight);
-        this.scene.add(directionalLight);
-        this.scene.add(directionalLightHelper);
+        // this.scene.add(directionalLight);
+        // this.scene.add(directionalLightHelper);
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
         this.camera.position.set(20, 20, 20);
@@ -219,7 +249,7 @@ class GenoPrototype {
         // Update fps
         this.stats.update();
         this.particleSystem.render();
-        this.renderer.render(this.scene, this.camera); //Render
+        this.renderer.render(this.scene, this.camera); // Render
     }
 
     addBaseObjects() {
@@ -329,7 +359,7 @@ class GenoPrototype {
                 '#include <begin_vertex>',
                 [
                     `
-                    float currentPositionY = 2.8 * sin(0.11 * (uTime + position.x + position.y));
+                    float currentPositionY = 2.8 * sin(0.11 * (uTime - position.x + position.y));
 
                     vec3 transformed = vec3(position.x, position.y, position.z + currentPositionY);
                     `,
