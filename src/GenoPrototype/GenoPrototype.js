@@ -340,6 +340,13 @@ class GenoPrototype {
 
     addFilterLayer(newCenter) {
 
+        // Points
+        var dotGeometry = new THREE.BufferGeometry();
+        dotGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [0,50,0], 3 ) );
+        var dotMaterial = new THREE.PointsMaterial( { size: 1.0, color: 0x00ff00 } );
+        var dot = new THREE.Points( dotGeometry, dotMaterial );
+        this.scene.add( dot );
+
         const fileterLayerMat = new THREE.MeshBasicMaterial({
             color: 0x2596be,
             wireframe: true,
