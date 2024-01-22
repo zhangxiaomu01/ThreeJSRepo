@@ -359,7 +359,10 @@ class GenoPrototype {
                 '#include <begin_vertex>',
                 [
                     `
-                    float currentPositionY = 2.8 * sin(0.11 * (uTime - position.x + position.y));
+                    float dx = position.x;
+                    float dy = position.y;
+                    float freq = sqrt(dx*dx + dy*dy);
+                    float currentPositionY = 2.8 * sin(0.25 * (uTime - freq));
 
                     vec3 transformed = vec3(position.x, position.y, position.z + currentPositionY);
                     `,
