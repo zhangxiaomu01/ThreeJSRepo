@@ -28,7 +28,7 @@ class GenoPrototype {
           );
 
         const hdrMap02 = new RGBELoader().load(
-            "./resources/GenoPrototype/remmac_HDR_nightReflection.hdr",  
+            "./resources/GenoPrototype/HDR_Light_Studio_Free_HDRI_Design_02.hdr",  
             () => { 
                 hdrMap02.mapping = THREE.EquirectangularReflectionMapping; 
             }
@@ -54,18 +54,18 @@ class GenoPrototype {
 
         this.clusteredSphereMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xe2d200,
-            transparent: false,
-            opacity: 1.0,
-            depthTest: true,
+            transparent: true,
+            opacity: 0.8,
+            depthTest: false,
             metalness: 0.0,  
-            roughness: 0.5,
+            roughness: 0.2,
             // sheen: 0.4,
             // sheenColor: 0xffffff,
             clearcoat: 0.8,
-            clearcoatRoughness: 0.75,
+            clearcoatRoughness: 0.0,
             reflectivity: 0.6,
             envMap: hdrMap02,
-            envMapIntensity: 0.02,
+            envMapIntensity: 2.0,
         }); 
 
         this.filteredLayerMaterial = new THREE.MeshBasicMaterial({
@@ -106,9 +106,22 @@ class GenoPrototype {
         const axesHelper = new THREE.AxesHelper(150);
 
         // Light source 
-        const pointLight = new THREE.PointLight(0xffffff, 200.0, 300, 1);
+        const pointLight = new THREE.PointLight(0xffffff, 100.0, 300, 1);
         pointLight.position.set(0, 50, 0);
         const pointLightHelper = new THREE.PointLightHelper(pointLight, 1.0, 0xff0000ff);
+
+        const pointLight1 = new THREE.PointLight(0xffffff, 100.0, 100, 1);
+        pointLight1.position.set(40, 25, 40);
+        const pointLightHelper1 = new THREE.PointLightHelper(pointLight1, 1.0, 0xff0000ff);
+
+        const pointLight2 = new THREE.PointLight(0xffffff, 100.0, 100, 1);
+        pointLight2.position.set(-40, 25, 40);
+        const pointLightHelper2 = new THREE.PointLightHelper(pointLight2, 1.0, 0xff0000ff);
+
+        const spotLight = new THREE.SpotLight(0xffffff, 10000.0, 150, Math.PI / 4);
+        spotLight.position.set(80, 25, 80);
+        spotLight.target.position.set(0, 25, 0);
+        const spotLightHelper = new THREE.SpotLightHelper(spotLight, 0xff0000ff);
 
         const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
         directionalLight.position.set(0.0, 60, 40);
@@ -116,18 +129,18 @@ class GenoPrototype {
         const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1.0, 0xff0000);
         // directionalLight.rotateOnAxis(new THREE.Vector3(1.0, 0.0, 0.0), THREE.MathUtils.degToRad(45));
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
 
 
-        let particleMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(10, 12, 12), 
-            new THREE.MeshStandardMaterial({ color: new THREE.Color(0.5, 0.6, 0.3),
-                  depthTest: true,
-                  metalness: 0.1,  
-                  roughness: 0.1,
-                  reflectivity: 0.5}));
+        // let particleMesh = new THREE.Mesh(
+        //     new THREE.SphereGeometry(10, 12, 12), 
+        //     new THREE.MeshStandardMaterial({ color: new THREE.Color(0.5, 0.6, 0.3),
+        //           depthTest: true,
+        //           metalness: 0.0,  
+        //           roughness: 0.1,
+        //           reflectivity: 0.5}));
 
-        particleMesh.position.y = 50;
+        // particleMesh.position.x = 50;
 
         // this.scene.add(particleMesh);
 
@@ -135,13 +148,22 @@ class GenoPrototype {
         this.scene.add(axesHelper);
         this.scene.add(pointLight);
         this.scene.add(pointLightHelper);
+        
+        // this.scene.add(pointLight1);
+        // this.scene.add(pointLightHelper1);
+        // this.scene.add(pointLight2);
+        // this.scene.add(pointLightHelper2);
+
+        // this.scene.add(spotLight);
+        // this.scene.add(spotLightHelper);
+
         this.scene.add(ambientLight);
         // this.scene.add(directionalLight);
         // this.scene.add(directionalLightHelper);
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
-        this.camera.position.set(20, 20, 20);
-        this.camera.lookAt(this.baseObjectGroup.position);
+        this.camera.position.set(0, 100, 300);
+        this.camera.lookAt(0, 100, 0);
 
         this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
         this.renderer.setSize(width, height);
@@ -341,11 +363,11 @@ class GenoPrototype {
     addFilterLayer(newCenter) {
 
         // Points
-        var dotGeometry = new THREE.BufferGeometry();
-        dotGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [0,50,0], 3 ) );
-        var dotMaterial = new THREE.PointsMaterial( { size: 1.0, color: 0x00ff00 } );
-        var dot = new THREE.Points( dotGeometry, dotMaterial );
-        this.scene.add( dot );
+        // var dotGeometry = new THREE.BufferGeometry();
+        // dotGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [0,50,0], 3 ) );
+        // var dotMaterial = new THREE.PointsMaterial( { size: 1.0, color: 0x00ff00 } );
+        // var dot = new THREE.Points( dotGeometry, dotMaterial );
+        // this.scene.add( dot );
 
         const fileterLayerMat = new THREE.MeshBasicMaterial({
             color: 0x2596be,

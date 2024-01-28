@@ -40,18 +40,22 @@ class GenoParticle {
     if (this.config && this.config.upParticleConfigs.upParticleColors) {
       particleColors = this.config.upParticleConfigs.upParticleColors;
     }
-    this.particleSphereSize = 1.0;
+    this.particleSphereSize = 0.9;
     let particleGeometry = new THREE.SphereGeometry(this.particleSphereSize, 12, 12);
     let orangeParticleMat = new THREE.MeshPhysicalMaterial({ color: particleColors[0],
       depthTest: true,
       metalness: 0.0,  
-      roughness: 0.0,
+      roughness: 0.1,
+      transparent: true,
+      opacity: 0.8,
       // sheen: 0.4,
       // sheenColor: 0xffffff,
-      clearcoat: 0.75,
-      clearcoatRoughness: 0.0,
-      envMapIntensity: 0.01,
-      reflectivity: 0.5});
+      transmission: 0.25, // Add transparency
+      thickness: 0.05, // Add refraction!
+      clearcoat: 0.8,
+      clearcoatRoughness: 0.05,
+      envMapIntensity: 2.0,
+      reflectivity: 0.6});
     let purpleParticleMat = orangeParticleMat.clone();
     purpleParticleMat.color = particleColors[1];
     let redParticleMat = orangeParticleMat.clone();
@@ -82,7 +86,7 @@ class GenoParticle {
       },
       scale: {
         start: 1.0,
-        end: 0.1
+        end: 0.2
       },
       randomDrift: {
         driftX: 0.1,
@@ -104,7 +108,7 @@ class GenoParticle {
         theta: 10
       },
       scale: {
-        start: 1.0,
+        start: 0.8,
         end: 0.1
       },
       randomDrift: {
