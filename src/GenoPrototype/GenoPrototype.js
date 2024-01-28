@@ -360,6 +360,27 @@ class GenoPrototype {
         );
     }
 
+    setupAttributes( geometry ) {
+
+        const vectors = [
+            new THREE.Vector3( 1, 0, 0 ),
+            new THREE.Vector3( 0, 1, 0 ),
+            new THREE.Vector3( 0, 0, 1 )
+        ];
+
+        const position = geometry.attributes.position;
+        const centers = new Float32Array( position.count * 3 );
+
+        for ( let i = 0, l = position.count; i < l; i ++ ) {
+
+            vectors[ i % 3 ].toArray( centers, i * 3 );
+
+        }
+
+        geometry.setAttribute( 'center', new THREE.BufferAttribute( centers, 3 ) );
+
+    }
+
     addFilterLayer(newCenter) {
 
         // Points
@@ -369,8 +390,10 @@ class GenoPrototype {
         // var dot = new THREE.Points( dotGeometry, dotMaterial );
         // this.scene.add( dot );
 
-        const fileterLayerMat = new THREE.MeshBasicMaterial({
+        const fileterLayerMat = new THREE.MeshLambertMaterial({
             color: 0x2596be,
+            emissive: 0x1d4757,
+            side: THREE.FrontSide,
             wireframe: true,
         });
 
@@ -399,13 +422,65 @@ class GenoPrototype {
             );
 
             shader.fragmentShader = shader.fragmentShader;
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+                'vec4 diffuseColor = vec4( diffuse, opacity );',
+                [
+                    `
+                    vec4 finalColor = gl_FrontFacing ? vec4( diffuse, 1.0 ) : vec4( diffuse * 0.7, 1.0 );
+                    vec4 diffuseColor = finalColor * 5.0;
+                    `,
+                ].join( '\n' )
+            );
             fileterLayerMat.userData.shader = shader;
         };
+
+        const material2 = new THREE.ShaderMaterial( {
+
+            uniforms: { 'thickness': { value: 0.2 } },
+            vertexShader: `
+            attribute vec3 center;
+			varying vec3 vCenter;
+
+			void main() {
+
+				vCenter = center;
+
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+			}
+            `,
+            fragmentShader: `
+            uniform float thickness;
+
+			varying vec3 vCenter;
+
+			void main() {
+
+				vec3 afwidth = fwidth( vCenter.xyz );
+
+				vec3 edge3 = smoothstep( ( thickness - 1.0 ) * afwidth, thickness * afwidth, vCenter.xyz );
+
+				float edge = 1.0 - min( min( edge3.x, edge3.y ), edge3.z );
+
+				gl_FragColor.rgb = gl_FrontFacing ? vec3( 0.9, 0.9, 1.0 ) : vec3( 0.4, 0.4, 0.5 );
+				gl_FragColor.a = edge;
+
+			}
+            `,
+            side: THREE.DoubleSide,
+            alphaToCoverage: true // only works when WebGLRenderer's "antialias" is set to "true"
+
+        } );
+        material2.extensions.derivatives = true;
+
+        let planeGeometry = new PlaneGeometry(100, 100, 50, 50);
+        // this.setupAttributes(planeGeometry);
 
         this.filteredLayerMaterial = fileterLayerMat;
 
         let middleMesh = new THREE.Mesh(
-            new PlaneGeometry(100, 100, 50, 50),
+            planeGeometry,
             this.filteredLayerMaterial
         );
         
