@@ -179,6 +179,39 @@ class GenoParticle {
           .emit();
   }
 
+  createTestEmitter({ position, body }) {
+    const emitter = new Emitter();
+    return emitter
+        .setRate(new Rate(
+          new Span(15, 25), 
+          new Span(0.1, 0.25)))
+        .addInitializers([
+            new Mass(1),
+            new Radius(0.1),
+            new Life(1.25, 1.5),
+            new Body(body),
+            new Position(new BoxZone(0, 0, 0, 50, 20, 50)),
+            new RadialVelocity(50,
+              new THREE.Vector3(0, 1, 0),
+              10),
+        ])
+        .addBehaviours([
+            new Rotate('random', 'random'),
+            new Scale(0.8, 0.1),
+            // new Force(0, 0.1, 0),
+            new RandomDrift(
+              0.1, 
+              5, 
+              0.1, 
+              1.0),
+            new Attraction(new Vector3D(40.0, 120.0, 0.0), 1.0, 50.0),
+            // new Spring(1, 5, 0, 0.01, 1),
+            // new Color(new THREE.Color(), new THREE.Color(1.0, 0.0, 0.0)),
+        ])
+        .setPosition(position)
+        .emit();
+}
+
   async getMeshParticleSystem () {
     // Create bottom particles
     const gap = 30;
@@ -285,6 +318,13 @@ class GenoParticle {
         system.addEmitter(upEmitter);
       }
     }
+
+    let testEmitter = this.createTestEmitter(
+      {
+      position: new THREE.Vector3(40.0, 50, 0.0), 
+      body:this.createMesh(/* meshId = */ 0)
+    });
+    system.addEmitter(testEmitter);
 
     return system
       .addRenderer(new MeshRenderer(this.scene, THREE));
