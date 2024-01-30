@@ -75,8 +75,8 @@ class GenoPrototype {
 
         const filterLayerPosition = new THREE.Vector3(0.0, 50, 0.0);
         const orangeGeoSphereBlobPosition = new THREE.Vector3(0.0, 115.0, 10.0);
-        const purpleGeoSphereBlobPosition = new THREE.Vector3(10.0, 110.0, -10.0);
-        const redGeoSphereBlobPosition = new THREE.Vector3(-10.0, 110.0, -10.0);
+        const purpleGeoSphereBlobPosition = new THREE.Vector3(12.0, 110.0, -10.0);
+        const redGeoSphereBlobPosition = new THREE.Vector3(-12.0, 110.0, -10.0);
         const orangeColor = new THREE.Color(1, 0.592, 0.259);
         const purpleColor = new THREE.Color(112 / 255.0, 11 / 255.0, 156 / 255.0);
         const redColor = new THREE.Color(0.969, 0.0, 0.176);
@@ -110,13 +110,17 @@ class GenoPrototype {
         pointLight.position.set(0, 50, 0);
         const pointLightHelper = new THREE.PointLightHelper(pointLight, 1.0, 0xff0000ff);
 
-        const pointLight1 = new THREE.PointLight(0xffffff, 100.0, 100, 1);
-        pointLight1.position.set(40, 25, 40);
+        const pointLight1 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
+        pointLight1.position.set(0, 115, 10);
         const pointLightHelper1 = new THREE.PointLightHelper(pointLight1, 1.0, 0xff0000ff);
 
-        const pointLight2 = new THREE.PointLight(0xffffff, 100.0, 100, 1);
-        pointLight2.position.set(-40, 25, 40);
+        const pointLight2 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
+        pointLight2.position.set(12.0, 110.0, -10.0);
         const pointLightHelper2 = new THREE.PointLightHelper(pointLight2, 1.0, 0xff0000ff);
+
+        const pointLight3 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
+        pointLight3.position.set(-12.0, 110.0, -10.0);
+        const pointLightHelper3 = new THREE.PointLightHelper(pointLight3, 1.0, 0xff0000ff);
 
         const spotLight = new THREE.SpotLight(0xffffff, 10000.0, 150, Math.PI / 4);
         spotLight.position.set(80, 25, 80);
@@ -145,14 +149,16 @@ class GenoPrototype {
         // this.scene.add(particleMesh);
 
 
-        this.scene.add(axesHelper);
+        // this.scene.add(axesHelper);
         this.scene.add(pointLight);
         this.scene.add(pointLightHelper);
         
-        // this.scene.add(pointLight1);
-        // this.scene.add(pointLightHelper1);
-        // this.scene.add(pointLight2);
-        // this.scene.add(pointLightHelper2);
+        this.scene.add(pointLight1);
+        this.scene.add(pointLightHelper1);
+        this.scene.add(pointLight2);
+        this.scene.add(pointLightHelper2);
+        this.scene.add(pointLight3);
+        this.scene.add(pointLightHelper3);
 
         // this.scene.add(spotLight);
         // this.scene.add(spotLightHelper);
@@ -268,6 +274,10 @@ class GenoPrototype {
             this.filteredLayerMaterial.userData.shader.uniforms.uTime.value = previousTime + 0.1;
         }
 
+        // for (let ii = 0; ii < this.filteredClusterGroup.children.length; ++ii) {
+        //     this.filteredClusterGroup.children[ii].rotateY(0.002);
+        // }
+
         // Update fps
         this.stats.update();
         this.particleSystem.render();
@@ -305,18 +315,18 @@ class GenoPrototype {
                 const instancedMesh = new THREE.InstancedMesh(
                     object.children[0].geometry,
                     material,
-                    1000);
+                    4000);
                 
                 const originalColor = newColor;
                 
-                for (let ii = 0; ii < 1000; ++ii) {
+                for (let ii = 0; ii < 4000; ++ii) {
                     const dummy = new THREE.Object3D();
                     while (dummy.position.length() < 9 || dummy.position.length() > 12) {
                         dummy.position.x = Math.random() * 24 - 12;
                         dummy.position.y = Math.random() * 24 - 12;
                         dummy.position.z = Math.random() * 24 - 12;
 
-                        dummy.scale.x = dummy.scale.y = dummy.scale.z = Math.random() * 0.7;
+                        dummy.scale.x = dummy.scale.y = dummy.scale.z = Math.random() * 0.3;
                     }
                     const newPos = new THREE.Vector3().copy(dummy.position);
 
