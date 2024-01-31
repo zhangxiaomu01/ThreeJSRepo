@@ -40,7 +40,7 @@ class GenoParticle {
     if (this.config && this.config.upParticleConfigs.upParticleColors) {
       particleColors = this.config.upParticleConfigs.upParticleColors;
     }
-    this.particleSphereSize = 0.9;
+    this.particleSphereSize = 0.5;
     let particleGeometry = new THREE.SphereGeometry(this.particleSphereSize, 12, 12);
     let orangeParticleMat = new THREE.MeshPhysicalMaterial({ color: particleColors[0],
       depthTest: true,
@@ -73,26 +73,27 @@ class GenoParticle {
     this.particleMeshes = [orangeMesh, purpleMesh, redMesh];
 
     this.bottomParticleParamter = {
-      numPan: {start: 2, end : 5},
+      numPan: {start: 1, end : 3},
       timePan: {start: 0.1, end: 0.25},
       mass: 1,
       radius: 0.1,
-      life: {start: 0.85, end: 1.5},
+      life: {start: 0.85, end: 2.5},
       position: new BoxZone(0.1),
       radialVelocity: {
-        radius: 50,
+        radius: 20,
         direction: new THREE.Vector3(0, 1, 0), 
-        theta: 3
+        theta: 5
       },
       scale: {
         start: 1.0,
         end: 0.2
       },
       randomDrift: {
-        driftX: 0.1,
-        driftY: 5,
+        driftX: 0.3,
+        driftY: 0.5,
+        driftZ: 0.3,
         delay: 0.1,
-        life: 1.0
+        life: 5.0
       }
     };
     this.upParticleParamter = {
@@ -100,7 +101,7 @@ class GenoParticle {
       timePan: {start: 0.1, end: 0.25},
       mass: 1,
       radius: 0.1,
-      life: {start: 1.25, end: 1.5},
+      life: {start: 1.0, end: 1.25},
       position: new BoxZone(0.3),
       radialVelocity: {
         radius: 50,
@@ -108,13 +109,14 @@ class GenoParticle {
         theta: 10
       },
       scale: {
-        start: 0.8,
-        end: 0.1
+        start: 0.6,
+        end: 0.2
       },
       randomDrift: {
         driftX: 0.1,
         driftY: 5,
-        delay: 0.1,
+        driftZ: 0.1,
+        delay: 0.5,
         life: 1.0
       }
     };
@@ -146,6 +148,8 @@ class GenoParticle {
         type === 'bottom' 
         ? this.bottomParticleParamter
         : this.upParticleParamter;
+      let attractionForce = type === 'bottom' 
+      ? 0.5 : 0.0;
       param.radialVelocity.direction = direction;
 
       return emitter
@@ -169,9 +173,11 @@ class GenoParticle {
               new RandomDrift(
                 param.randomDrift.driftX, 
                 param.randomDrift.driftY, 
+                param.randomDrift.driftZ, 
                 param.randomDrift.delay, 
                 param.randomDrift.life),
-              // new Attraction(new Vector3D(0.0, 45.0, 0.0), 2.0, 3.0),
+              // new Gravity(0, 0),
+              new Attraction(new Vector3D(0.0, 50.0, 0.0), attractionForce, 50.0),
               // new Spring(1, 5, 0, 0.01, 1),
               // new Color(new THREE.Color(), new THREE.Color(1.0, 0.0, 0.0)),
           ])
@@ -179,32 +185,32 @@ class GenoParticle {
           .emit();
   }
 
-  createTestEmitter({ position, body }) {
+  createRandomEmitter({ position, body }) {
     const emitter = new Emitter();
     return emitter
         .setRate(new Rate(
-          new Span(15, 25), 
+          new Span(30, 50), 
           new Span(0.1, 0.25)))
         .addInitializers([
             new Mass(1),
             new Radius(0.1),
-            new Life(1.25, 1.5),
+            new Life(1.0, 1.15),
             new Body(body),
-            new Position(new BoxZone(0, 0, 0, 50, 20, 50)),
-            new RadialVelocity(50,
+            new Position(new BoxZone(0, 0, 0, 80, 2, 80)),
+            new RadialVelocity(20,
               new THREE.Vector3(0, 1, 0),
               10),
         ])
         .addBehaviours([
             new Rotate('random', 'random'),
-            new Scale(0.8, 0.1),
+            new Scale(0.8, 0.3),
             // new Force(0, 0.1, 0),
             new RandomDrift(
-              0.1, 
+              3, 
               5, 
-              0.1, 
-              1.0),
-            new Attraction(new Vector3D(40.0, 120.0, 0.0), 1.0, 50.0),
+              3, 
+              0.5),
+            new Attraction(new Vector3D(0.0, 50.0, 0.0), 0.9, 70.0),
             // new Spring(1, 5, 0, 0.01, 1),
             // new Color(new THREE.Color(), new THREE.Color(1.0, 0.0, 0.0)),
         ])
@@ -221,6 +227,55 @@ class GenoParticle {
     let orangeMesh = this.createMesh(/* meshId = */ 0);
     let purpleMesh = this.createMesh(/* meshId = */ 1);
     let redMesh = this.createMesh(/* meshId = */ 2);
+
+    this.createBottomParticle1(orangeMesh, purpleMesh, redMesh, system);
+    
+    // Create up particles
+    const maxUpEmitterNumber = 3;
+    let upParticleConfigs = this.config.upParticleConfigs;
+    if (upParticleConfigs 
+        && upParticleConfigs.upParticleDirections) {
+      let upEmitterDirections = upParticleConfigs.upParticleDirections;
+      for (let ii = 0; ii < maxUpEmitterNumber; ++ii) {
+        let direction = upEmitterDirections[ii];
+        direction.x = direction.x * 2;
+        direction.z = direction.z * 2;
+        let upEmitter = this.createEmitter({
+          position: this.upParticleStartingPosition,
+          direction: direction.normalize(),
+          body: this.createMesh(/* meshId = */ ii),
+          type: 'up'
+        });
+        system.addEmitter(upEmitter);
+      }
+    }
+
+    let randomEmitter = this.createRandomEmitter(
+      {
+      position: new THREE.Vector3(0.0, 0.0, 0.0), 
+      body:this.createMesh(/* meshId = */ 0)
+    });
+    system.addEmitter(randomEmitter);
+    randomEmitter = this.createRandomEmitter(
+      {
+      position: new THREE.Vector3(0.0, 0.0, 0.0), 
+      body:this.createMesh(/* meshId = */ 1)
+    });
+    system.addEmitter(randomEmitter);
+    randomEmitter = this.createRandomEmitter(
+      {
+      position: new THREE.Vector3(0.0, 0.0, 0.0), 
+      body:this.createMesh(/* meshId = */ 2)
+    });
+    system.addEmitter(randomEmitter);
+
+    return system
+      .addRenderer(new MeshRenderer(this.scene, THREE));
+  }
+
+  createBottomParticle1(orangeMesh, purpleMesh, redMesh, system) {
+    const gap = 30;
+    const targetPos = this.bottomParEndPosition;
 
     for (let ii = 0; ii < 3; ++ii) {
       for (let jj = 0; jj < 3; ++jj) {
@@ -298,36 +353,6 @@ class GenoParticle {
         system.addEmitter(sphereEmitter1);
         system.addEmitter(sphereEmitter2);
     }
-    
-    // Create up particles
-    const maxUpEmitterNumber = 3;
-    let upParticleConfigs = this.config.upParticleConfigs;
-    if (upParticleConfigs 
-        && upParticleConfigs.upParticleDirections) {
-      let upEmitterDirections = upParticleConfigs.upParticleDirections;
-      for (let ii = 0; ii < maxUpEmitterNumber; ++ii) {
-        let direction = upEmitterDirections[ii];
-        direction.x = direction.x * 2;
-        direction.z = direction.z * 2;
-        let upEmitter = this.createEmitter({
-          position: this.upParticleStartingPosition,
-          direction: direction.normalize(),
-          body: this.createMesh(/* meshId = */ ii),
-          type: 'up'
-        });
-        system.addEmitter(upEmitter);
-      }
-    }
-
-    let testEmitter = this.createTestEmitter(
-      {
-      position: new THREE.Vector3(40.0, 50, 0.0), 
-      body:this.createMesh(/* meshId = */ 0)
-    });
-    system.addEmitter(testEmitter);
-
-    return system
-      .addRenderer(new MeshRenderer(this.scene, THREE));
   }
 
   initScene() {
