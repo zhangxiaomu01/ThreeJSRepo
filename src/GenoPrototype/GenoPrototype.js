@@ -171,7 +171,7 @@ class GenoPrototype {
         this.camera.position.set(0, 100, 300);
         this.camera.lookAt(0, 100, 0);
 
-        this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
+        this.renderer = new THREE.WebGLRenderer( {antialias: true} );
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setClearColor(0x000000, 1.0);
@@ -265,13 +265,12 @@ class GenoPrototype {
 
     render() {
         // Update shader uniform;
-        if (this.filteredLayerMaterial.userData.shader 
-            && this.filteredLayerMaterial.userData.shader.uniforms.uTime) {
-            let previousTime = this.filteredLayerMaterial.userData.shader.uniforms.uTime.value;
+        if (this.filteredLayerMaterial.uniforms.uTime) {
+            let previousTime = this.filteredLayerMaterial.uniforms.uTime.value;
             
             if (previousTime > 99999999.0) previousTime = 0.0;
 
-            this.filteredLayerMaterial.userData.shader.uniforms.uTime.value = previousTime + 0.1;
+            this.filteredLayerMaterial.uniforms.uTime.value = previousTime + 0.1;
         }
 
         // for (let ii = 0; ii < this.filteredClusterGroup.children.length; ++ii) {
@@ -400,63 +399,29 @@ class GenoPrototype {
         // var dot = new THREE.Points( dotGeometry, dotMaterial );
         // this.scene.add( dot );
 
-        const fileterLayerMat = new THREE.MeshLambertMaterial({
-            color: 0x2596be,
-            emissive: 0x1d4757,
-            side: THREE.FrontSide,
-            wireframe: true,
-        });
+        const fileterLayerMat = new THREE.ShaderMaterial( {
 
-        fileterLayerMat.onBeforeCompile = function ( shader ) {
-            shader.uniforms.uTime = { value: 0.0 };
-
-            console.log(shader.attributes);
-
-            shader.vertexShader = `
-            uniform float uTime;
-            `
-            + shader.vertexShader;
-
-            shader.vertexShader = shader.vertexShader.replace(
-                '#include <begin_vertex>',
-                [
-                    `
-                    float dx = position.x;
-                    float dy = position.y;
-                    float freq = sqrt(dx*dx + dy*dy);
-                    float currentPositionY = 2.8 * sin(0.25 * (uTime - freq));
-
-                    vec3 transformed = vec3(position.x, position.y, position.z + currentPositionY);
-                    `,
-                ].join( '\n' )
-            );
-
-            shader.fragmentShader = shader.fragmentShader;
-
-            shader.fragmentShader = shader.fragmentShader.replace(
-                'vec4 diffuseColor = vec4( diffuse, opacity );',
-                [
-                    `
-                    vec4 finalColor = gl_FrontFacing ? vec4( diffuse, 1.0 ) : vec4( diffuse * 0.7, 1.0 );
-                    vec4 diffuseColor = finalColor * 5.0;
-                    `,
-                ].join( '\n' )
-            );
-            fileterLayerMat.userData.shader = shader;
-        };
-
-        const material2 = new THREE.ShaderMaterial( {
-
-            uniforms: { 'thickness': { value: 0.2 } },
+            uniforms: { 
+                'thickness': { value: 0.3 }, 
+                'uTime': { value: 0.0 },
+            },
             vertexShader: `
             attribute vec3 center;
 			varying vec3 vCenter;
+
+            uniform float uTime;
 
 			void main() {
 
 				vCenter = center;
 
-				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+                float dx = position.x;
+                float dy = position.y;
+                float freq = sqrt(dx*dx + dy*dy);
+                float currentPositionY = 2.8 * sin(0.25 * (uTime - freq));
+
+                vec3 newPosition = vec3(position.x, position.y, position.z + currentPositionY);
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
 
 			}
             `,
@@ -473,19 +438,22 @@ class GenoPrototype {
 
 				float edge = 1.0 - min( min( edge3.x, edge3.y ), edge3.z );
 
-				gl_FragColor.rgb = gl_FrontFacing ? vec3( 0.9, 0.9, 1.0 ) : vec3( 0.4, 0.4, 0.5 );
+				gl_FragColor.rgb = gl_FrontFacing ? vec3( 0.145, 0.589, 0.745 ) : vec3( 0.114, 0.278, 0.341 );
 				gl_FragColor.a = edge;
 
 			}
             `,
             side: THREE.DoubleSide,
+            // wireframe: true,
             alphaToCoverage: true // only works when WebGLRenderer's "antialias" is set to "true"
 
         } );
-        material2.extensions.derivatives = true;
+        fileterLayerMat.extensions.derivatives = true;
 
-        let planeGeometry = new PlaneGeometry(100, 100, 50, 50);
-        // this.setupAttributes(planeGeometry);
+        let planeGeometry = new THREE.PlaneGeometry(100, 100, 30, 30);
+        planeGeometry = planeGeometry.toNonIndexed();
+
+        this.setupAttributes(planeGeometry);
 
         this.filteredLayerMaterial = fileterLayerMat;
 
@@ -495,7 +463,7 @@ class GenoPrototype {
         );
         
         middleMesh.position.set(newCenter.x, newCenter.y, newCenter.z);
-        middleMesh.rotateX( Math.PI / 2 );
+        middleMesh.rotateX( - Math.PI / 2 );
         
         this.scene.add(middleMesh);
     }

@@ -210,7 +210,7 @@ class GenoParticle {
               5, 
               3, 
               0.5),
-            new Attraction(new Vector3D(0.0, 50.0, 0.0), 0.9, 70.0),
+            new Attraction(new Vector3D(0.0, 50.0, 0.0), 0.7, 70.0),
             // new Spring(1, 5, 0, 0.01, 1),
             // new Color(new THREE.Color(), new THREE.Color(1.0, 0.0, 0.0)),
         ])
