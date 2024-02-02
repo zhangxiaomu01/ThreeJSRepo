@@ -409,6 +409,8 @@ class GenoPrototype {
             attribute vec3 center;
 			varying vec3 vCenter;
 
+            flat varying float distanceMask;
+
             uniform float uTime;
 
 			void main() {
@@ -418,6 +420,7 @@ class GenoPrototype {
                 float dx = position.x;
                 float dy = position.y;
                 float freq = sqrt(dx*dx + dy*dy);
+                distanceMask = max(1.0 - smoothstep(0.0, 55.0, freq), 0.0);
                 float currentPositionY = 2.8 * sin(0.25 * (uTime - freq));
 
                 vec3 newPosition = vec3(position.x, position.y, position.z + currentPositionY);
@@ -429,6 +432,7 @@ class GenoPrototype {
             uniform float thickness;
 
 			varying vec3 vCenter;
+            flat varying float distanceMask;
 
 			void main() {
 
@@ -439,7 +443,7 @@ class GenoPrototype {
 				float edge = 1.0 - min( min( edge3.x, edge3.y ), edge3.z );
 
 				gl_FragColor.rgb = gl_FrontFacing ? vec3( 0.145, 0.589, 0.745 ) : vec3( 0.114, 0.278, 0.341 );
-				gl_FragColor.a = edge;
+				gl_FragColor.a = edge * distanceMask;
 
 			}
             `,

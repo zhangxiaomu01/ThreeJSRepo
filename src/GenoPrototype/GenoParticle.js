@@ -64,12 +64,15 @@ class GenoParticle {
     let orangeMesh = new THREE.Mesh(
       particleGeometry, 
       orangeParticleMat);
+    orangeMesh.scale.x = 0.5;
     let purpleMesh = new THREE.Mesh(
       particleGeometry, 
       purpleParticleMat);
+    purpleMesh.scale.y = 0.5;
     let redMesh = new THREE.Mesh(
       particleGeometry, 
       redParticleMat);
+    purpleMesh.scale.z = 0.5;
     this.particleMeshes = [orangeMesh, purpleMesh, redMesh];
 
     this.bottomParticleParamter = {
