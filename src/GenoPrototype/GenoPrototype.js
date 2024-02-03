@@ -74,9 +74,9 @@ class GenoPrototype {
         });
 
         const filterLayerPosition = new THREE.Vector3(0.0, 50, 0.0);
-        const orangeGeoSphereBlobPosition = new THREE.Vector3(0.0, 115.0, 10.0);
-        const purpleGeoSphereBlobPosition = new THREE.Vector3(12.0, 110.0, -10.0);
-        const redGeoSphereBlobPosition = new THREE.Vector3(-12.0, 110.0, -10.0);
+        const orangeGeoSphereBlobPosition = new THREE.Vector3(0.0, 105.0, 10.0);
+        const purpleGeoSphereBlobPosition = new THREE.Vector3(12.0, 100.0, -10.0);
+        const redGeoSphereBlobPosition = new THREE.Vector3(-12.0, 100.0, -10.0);
         const orangeColor = new THREE.Color(1, 0.592, 0.259);
         const purpleColor = new THREE.Color(112 / 255.0, 11 / 255.0, 156 / 255.0);
         const redColor = new THREE.Color(0.969, 0.0, 0.176);
@@ -111,15 +111,18 @@ class GenoPrototype {
         const pointLightHelper = new THREE.PointLightHelper(pointLight, 1.0, 0xff0000ff);
 
         const pointLight1 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
-        pointLight1.position.set(0, 115, 10);
+        pointLight1.position.set(orangeGeoSphereBlobPosition.x,
+            orangeGeoSphereBlobPosition.y, orangeGeoSphereBlobPosition.z);
         const pointLightHelper1 = new THREE.PointLightHelper(pointLight1, 1.0, 0xff0000ff);
 
         const pointLight2 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
-        pointLight2.position.set(12.0, 110.0, -10.0);
+        pointLight2.position.set(purpleGeoSphereBlobPosition.x, 
+            purpleGeoSphereBlobPosition.y, purpleGeoSphereBlobPosition.z);
         const pointLightHelper2 = new THREE.PointLightHelper(pointLight2, 1.0, 0xff0000ff);
 
         const pointLight3 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
-        pointLight3.position.set(-12.0, 110.0, -10.0);
+        pointLight3.position.set(redGeoSphereBlobPosition.x, 
+            redGeoSphereBlobPosition.y, redGeoSphereBlobPosition.z);
         const pointLightHelper3 = new THREE.PointLightHelper(pointLight3, 1.0, 0xff0000ff);
 
         const spotLight = new THREE.SpotLight(0xffffff, 10000.0, 150, Math.PI / 4);
@@ -273,9 +276,11 @@ class GenoPrototype {
             this.filteredLayerMaterial.uniforms.uTime.value = previousTime + 0.1;
         }
 
-        // for (let ii = 0; ii < this.filteredClusterGroup.children.length; ++ii) {
-        //     this.filteredClusterGroup.children[ii].rotateY(0.002);
-        // }
+        // Rotate the upper spheres.
+        for (let ii = 0; ii < this.filteredClusterGroup.children.length; ++ii) {
+            this.filteredClusterGroup.children[ii].rotateY(0.002);
+            this.particleSystem.upParticleEmitters[ii].setRotation(this.filteredClusterGroup.children[ii].rotation);;
+        }
 
         // Update fps
         this.stats.update();

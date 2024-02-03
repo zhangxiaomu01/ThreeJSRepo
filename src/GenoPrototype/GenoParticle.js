@@ -31,6 +31,8 @@ class GenoParticle {
     this.config = config;
     this.nebulaSystem = null;
 
+    this.upParticleEmitters = [];
+
     // Particle parameters
     let particleColors = [
       new THREE.Color(1, 0.592, 0.259),
@@ -41,7 +43,7 @@ class GenoParticle {
       particleColors = this.config.upParticleConfigs.upParticleColors;
     }
     this.particleSphereSize = 0.5;
-    let particleGeometry = new THREE.SphereGeometry(this.particleSphereSize, 12, 12);
+    let particleGeometry = new THREE.SphereGeometry(this.particleSphereSize, 8, 8);
     let orangeParticleMat = new THREE.MeshPhysicalMaterial({ color: particleColors[0],
       depthTest: true,
       metalness: 0.0,  
@@ -76,7 +78,7 @@ class GenoParticle {
     this.particleMeshes = [orangeMesh, purpleMesh, redMesh];
 
     this.bottomParticleParamter = {
-      numPan: {start: 1, end : 3},
+      numPan: {start: 1, end : 2},
       timePan: {start: 0.1, end: 0.25},
       mass: 1,
       radius: 0.1,
@@ -104,12 +106,12 @@ class GenoParticle {
       timePan: {start: 0.1, end: 0.25},
       mass: 1,
       radius: 0.1,
-      life: {start: 1.0, end: 1.25},
+      life: {start: 0.85, end: 1.05},
       position: new BoxZone(0.3),
       radialVelocity: {
         radius: 50,
         direction: new THREE.Vector3(0, 1, 0),
-        theta: 10
+        theta: 13
       },
       scale: {
         start: 0.6,
@@ -249,6 +251,8 @@ class GenoParticle {
           body: this.createMesh(/* meshId = */ ii),
           type: 'up'
         });
+        console.log(upEmitter);
+        this.upParticleEmitters.push(upEmitter);
         system.addEmitter(upEmitter);
       }
     }

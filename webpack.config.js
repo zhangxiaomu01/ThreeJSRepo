@@ -27,6 +27,7 @@ module.exports = {
         static: {
           directory: path.join(__dirname, 'dist'),
         },
+        https: true,
         compress: true,
         port: 5500,
       },
