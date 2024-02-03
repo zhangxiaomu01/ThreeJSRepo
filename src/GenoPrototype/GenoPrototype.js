@@ -156,12 +156,12 @@ class GenoPrototype {
         this.scene.add(pointLight);
         this.scene.add(pointLightHelper);
         
-        this.scene.add(pointLight1);
-        this.scene.add(pointLightHelper1);
-        this.scene.add(pointLight2);
-        this.scene.add(pointLightHelper2);
-        this.scene.add(pointLight3);
-        this.scene.add(pointLightHelper3);
+        // this.scene.add(pointLight1);
+        // this.scene.add(pointLightHelper1);
+        // this.scene.add(pointLight2);
+        // this.scene.add(pointLightHelper2);
+        // this.scene.add(pointLight3);
+        // this.scene.add(pointLightHelper3);
 
         // this.scene.add(spotLight);
         // this.scene.add(spotLightHelper);
@@ -396,14 +396,6 @@ class GenoPrototype {
     }
 
     addFilterLayer(newCenter) {
-
-        // Points
-        // var dotGeometry = new THREE.BufferGeometry();
-        // dotGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [0,50,0], 3 ) );
-        // var dotMaterial = new THREE.PointsMaterial( { size: 1.0, color: 0x00ff00 } );
-        // var dot = new THREE.Points( dotGeometry, dotMaterial );
-        // this.scene.add( dot );
-
         const fileterLayerMat = new THREE.ShaderMaterial( {
 
             uniforms: { 
@@ -425,8 +417,9 @@ class GenoPrototype {
                 float dx = position.x;
                 float dy = position.y;
                 float freq = sqrt(dx*dx + dy*dy);
-                distanceMask = max(1.0 - smoothstep(0.0, 55.0, freq), 0.0);
-                float currentPositionY = 2.8 * sin(0.25 * (uTime - freq));
+                distanceMask = max(1.0 - smoothstep(0.0, 75.0, freq), 0.0);
+                float currentPositionY = 3.0 * sin(0.25 * (uTime - freq)) 
+                    + cos(0.9 * (uTime - freq) + position.y - position.x);
 
                 vec3 newPosition = vec3(position.x, position.y, position.z + currentPositionY);
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
@@ -459,7 +452,7 @@ class GenoPrototype {
         } );
         fileterLayerMat.extensions.derivatives = true;
 
-        let planeGeometry = new THREE.PlaneGeometry(100, 100, 30, 30);
+        let planeGeometry = new THREE.PlaneGeometry(125, 125, 50, 50);
         planeGeometry = planeGeometry.toNonIndexed();
 
         this.setupAttributes(planeGeometry);
