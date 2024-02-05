@@ -24,7 +24,7 @@ class GenoPrototype {
         this.objLoader = new OBJLoader();
 
         const hdrEquirect = new RGBELoader().load(
-            "./resources/GenoPrototype/Warehouse-with-lights_BlackGround.hdr",  
+            "./resources/GenoPrototype/Warehouse-with-lights_BlackGroundModified.hdr",  
             () => { 
               hdrEquirect.mapping = THREE.EquirectangularReflectionMapping; 
             }
@@ -51,7 +51,7 @@ class GenoPrototype {
             roughness: 0,
             reflectivity: 1.0,
             transmission: 1, // Add transparency
-            thickness: 0.0, // Add refraction!
+            thickness: 0.2, // Add refraction!
             envMap: hdrEquirect,
             envMapIntensity: 6.0,
         }); 
@@ -159,7 +159,7 @@ class GenoPrototype {
 
         // this.scene.add(axesHelper);
         this.scene.add(pointLight);
-        this.scene.add(pointLightHelper);
+        // this.scene.add(pointLightHelper);
         
         // this.scene.add(pointLight1);
         // this.scene.add(pointLightHelper1);
@@ -188,7 +188,7 @@ class GenoPrototype {
         const renderScene = new RenderPass( this.bloomScene, this.camera );
         const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
         bloomPass.threshold = 0.1;
-        bloomPass.strength = 0.4;
+        bloomPass.strength = 0.3;
         bloomPass.radius = 0.3;
 
         this.bloomComposer = new EffectComposer( this.renderer );
@@ -561,13 +561,13 @@ class GenoPrototype {
 				float edge = 1.0 - min( min( edge3.x, edge3.y ), edge3.z );
 
 				gl_FragColor.rgb = gl_FrontFacing ? vec3( 0.145, 0.589, 0.745 ) : vec3( 0.114, 0.278, 0.341 );
-				gl_FragColor.a = edge * distanceMask;
+				gl_FragColor.a = edge * distanceMask * 0.4;
 
 			}
             `,
             side: THREE.DoubleSide,
             transparent: true,
-            // wireframe: true,
+            wireframe: true,
             alphaToCoverage: true // only works when WebGLRenderer's "antialias" is set to "true"
 
         } );
@@ -598,7 +598,6 @@ class GenoPrototype {
             path,
             // called when resource is loaded
             function ( object ) {
-                console.log(parentObject);
                 if (object.children[0]) {
                     object.children[0].material = scope.transparentMaterial;
                     object.children[0].position.set(newPosition.x, newPosition.y, newPosition.z);

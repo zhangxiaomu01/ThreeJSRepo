@@ -102,16 +102,16 @@ class GenoParticle {
       }
     };
     this.upParticleParamter = {
-      numPan: {start: 15, end : 25},
+      numPan: {start: 25, end : 35},
       timePan: {start: 0.1, end: 0.25},
       mass: 1,
       radius: 0.1,
-      life: {start: 0.85, end: 1.05},
+      life: {start: 1.05, end: 1.85},
       position: new BoxZone(0.3),
       radialVelocity: {
-        radius: 50,
+        radius: 35,
         direction: new THREE.Vector3(0, 1, 0),
-        theta: 13
+        theta: 12
       },
       scale: {
         start: 0.6,
