@@ -24,7 +24,7 @@ class GenoPrototype {
         this.objLoader = new OBJLoader();
 
         const hdrEquirect = new RGBELoader().load(
-            "./resources/GenoPrototype/Warehouse-with-lights_BlackGroundModified.hdr",  
+            "./resources/GenoPrototype/HDR_Light_Studio_Free_HDRI_Design_01.hdr",  
             () => { 
               hdrEquirect.mapping = THREE.EquirectangularReflectionMapping; 
             }
@@ -49,11 +49,11 @@ class GenoPrototype {
             depthTest: true,
             metalness: 0.0,  
             roughness: 0,
-            reflectivity: 1.0,
-            transmission: 1, // Add transparency
+            reflectivity: 0.9,
+            transmission: 0.5, // Add transparency
             thickness: 0.2, // Add refraction!
             envMap: hdrEquirect,
-            envMapIntensity: 6.0,
+            envMapIntensity: 2.0,
         }); 
 
         this.clusteredSphereMaterial = new THREE.MeshPhysicalMaterial({
@@ -130,6 +130,16 @@ class GenoPrototype {
             redGeoSphereBlobPosition.y, redGeoSphereBlobPosition.z);
         const pointLightHelper3 = new THREE.PointLightHelper(pointLight3, 1.0, 0xff0000ff);
 
+        const pointLight4 = new THREE.PointLight(0xffffff, 300.0, 55, 1);
+        pointLight4.position.set(-20.0, 
+            20, -20.0);
+        const pointLightHelper4 = new THREE.PointLightHelper(pointLight4, 1.0, 0xff0000ff);
+
+        const pointLight5 = new THREE.PointLight(0xffffff, 300.0, 55, 1);
+        pointLight5.position.set(20.0, 
+            20, -20.0);
+        const pointLightHelper5 = new THREE.PointLightHelper(pointLight5, 1.0, 0xff0000ff);
+
         const spotLight = new THREE.SpotLight(0xffffff, 10000.0, 150, Math.PI / 4);
         spotLight.position.set(80, 25, 80);
         spotLight.target.position.set(0, 25, 0);
@@ -167,6 +177,10 @@ class GenoPrototype {
         // this.scene.add(pointLightHelper2);
         // this.scene.add(pointLight3);
         // this.scene.add(pointLightHelper3);
+        this.scene.add(pointLight4);
+        this.scene.add(pointLightHelper4);
+        this.scene.add(pointLight5);
+        this.scene.add(pointLightHelper5);
 
         // this.scene.add(spotLight);
         // this.scene.add(spotLightHelper);
