@@ -12,4 +12,21 @@ function render() {
     requestAnimationFrame(render);
 }
 
-render();
+function startRender() {
+    console.log(" Render starts! ");
+    render();
+}
+
+startRender();
+
+function getGenoPrototype() {
+    return genoPrototype;
+}
+
+function showFPSPanel() {
+    genoPrototype.showFPSPanel();
+}
+
+window.getGenoPrototype = getGenoPrototype;
+window.startRender = startRender;
+window.showFPSPanel = showFPSPanel;

@@ -196,15 +196,6 @@ class GenoPrototype {
             });
         this.particleSystem.initScene();
 
-        // Performance monitor
-        this.stats = new Stats();
-        document.body.appendChild(this.stats.domElement);
-        // 0 - FPS
-        // 1 - ms per frame
-        this.stats.setMode(0);
-
-        const clock = new THREE.Clock();
-
         window.addEventListener(
             'resize', function() {
                 // Resize
@@ -228,15 +219,6 @@ class GenoPrototype {
             this.filteredLayerMaterial.uniforms.uTime.value = previousTime + 0.1;
         }
 
-        // if (this.filteredLayerMaterial.userData.shader 
-        //     && this.filteredLayerMaterial.userData.shader.uniforms.uTime) {
-        //     let previousTime = this.filteredLayerMaterial.userData.shader.uniforms.uTime.value;
-            
-        //     if (previousTime > 99999999.0) previousTime = 0.0;
-
-        //     this.filteredLayerMaterial.userData.shader.uniforms.uTime.value = previousTime + 0.1;
-        // }
-
         // Rotate the upper spheres.
         for (let ii = 0; ii < this.filteredClusterGroup.children.length; ++ii) {
             this.filteredClusterGroup.children[ii].rotateY(0.002);
@@ -244,7 +226,9 @@ class GenoPrototype {
         }
 
         // Update fps
-        this.stats.update();
+        if (this.stats) {
+            this.stats.update();
+        }
         this.particleSystem.render();
         // this.renderer.render(this.scene, this.camera); // Render
         this.bloomComposer.render();
@@ -513,6 +497,15 @@ class GenoPrototype {
         this.scene.add(ambientLight);
         // this.scene.add(directionalLight);
         // this.scene.add(directionalLightHelper);
+    }
+
+    showFPSPanel() {
+        // Performance monitor
+        this.stats = new Stats();
+        document.body.appendChild(this.stats.domElement);
+        // 0 - FPS
+        // 1 - ms per frame
+        this.stats.setMode(0);
     }
 }
 
