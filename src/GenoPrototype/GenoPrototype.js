@@ -1,7 +1,6 @@
 import { PlaneGeometry } from '../../threejs_r155/build/three.module.js';
 import Stats from '../../threejs_r155/examples/jsm/libs/stats.module.js';
-import { THREE, OrbitControls, 
-    GUI, RGBELoader, OBJLoader, 
+import { THREE, OrbitControls, RGBELoader, OBJLoader, 
     EffectComposer, ShaderPass,
     UnrealBloomPass, RenderPass, OutputPass } from '../CommonImports.js';
 import { GenoParticle } from './GenoParticle.js'
@@ -104,90 +103,11 @@ class GenoPrototype {
         this.scene.add(this.baseObjectGroup);
 
         this.bloomScene.add(this.filteredClusterGroup);
-
-        const texLoader = new THREE.TextureLoader();
-        const testImage = texLoader.load('../resources/checker.jpg');
         
-        const axesHelper = new THREE.AxesHelper(150);
-
         // Light source 
-        const pointLight = new THREE.PointLight(0xffffff, 100.0, 300, 1);
-        pointLight.position.set(0, 50, 0);
-        const pointLightHelper = new THREE.PointLightHelper(pointLight, 1.0, 0xff0000ff);
-
-        const pointLight1 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
-        pointLight1.position.set(orangeGeoSphereBlobPosition.x,
-            orangeGeoSphereBlobPosition.y, orangeGeoSphereBlobPosition.z);
-        const pointLightHelper1 = new THREE.PointLightHelper(pointLight1, 1.0, 0xff0000ff);
-
-        const pointLight2 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
-        pointLight2.position.set(purpleGeoSphereBlobPosition.x, 
-            purpleGeoSphereBlobPosition.y, purpleGeoSphereBlobPosition.z);
-        const pointLightHelper2 = new THREE.PointLightHelper(pointLight2, 1.0, 0xff0000ff);
-
-        const pointLight3 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
-        pointLight3.position.set(redGeoSphereBlobPosition.x, 
-            redGeoSphereBlobPosition.y, redGeoSphereBlobPosition.z);
-        const pointLightHelper3 = new THREE.PointLightHelper(pointLight3, 1.0, 0xff0000ff);
-
-        const pointLight4 = new THREE.PointLight(0xffffff, 300.0, 55, 1);
-        pointLight4.position.set(-20.0, 
-            20, -20.0);
-        const pointLightHelper4 = new THREE.PointLightHelper(pointLight4, 1.0, 0xff0000ff);
-
-        const pointLight5 = new THREE.PointLight(0xffffff, 300.0, 55, 1);
-        pointLight5.position.set(20.0, 
-            20, -20.0);
-        const pointLightHelper5 = new THREE.PointLightHelper(pointLight5, 1.0, 0xff0000ff);
-
-        const spotLight = new THREE.SpotLight(0xffffff, 10000.0, 150, Math.PI / 4);
-        spotLight.position.set(80, 25, 80);
-        spotLight.target.position.set(0, 25, 0);
-        const spotLightHelper = new THREE.SpotLightHelper(spotLight, 0xff0000ff);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
-        directionalLight.position.set(0.0, 60, 40);
-        directionalLight.target = this.baseObjectGroup;
-        const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1.0, 0xff0000);
-        // directionalLight.rotateOnAxis(new THREE.Vector3(1.0, 0.0, 0.0), THREE.MathUtils.degToRad(45));
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
-
-
-        // let particleMesh = new THREE.Mesh(
-        //     new THREE.SphereGeometry(10, 12, 12), 
-        //     new THREE.MeshStandardMaterial({ color: new THREE.Color(0.5, 0.6, 0.3),
-        //           depthTest: true,
-        //           metalness: 0.0,  
-        //           roughness: 0.1,
-        //           reflectivity: 0.5}));
-
-        // particleMesh.position.x = 50;
-
-        // this.scene.add(particleMesh);
-
-
-        // this.scene.add(axesHelper);
-        this.scene.add(pointLight);
-        // this.scene.add(pointLightHelper);
-        
-        // this.scene.add(pointLight1);
-        // this.scene.add(pointLightHelper1);
-        // this.scene.add(pointLight2);
-        // this.scene.add(pointLightHelper2);
-        // this.scene.add(pointLight3);
-        // this.scene.add(pointLightHelper3);
-        this.scene.add(pointLight4);
-        this.scene.add(pointLightHelper4);
-        this.scene.add(pointLight5);
-        this.scene.add(pointLightHelper5);
-
-        // this.scene.add(spotLight);
-        // this.scene.add(spotLightHelper);
-
-        this.scene.add(ambientLight);
-        // this.scene.add(directionalLight);
-        // this.scene.add(directionalLightHelper);
+        this.addLights(orangeGeoSphereBlobPosition,
+            purpleGeoSphereBlobPosition,
+            redGeoSphereBlobPosition);
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
         this.camera.position.set(0, 100, 300);
@@ -281,7 +201,7 @@ class GenoPrototype {
         document.body.appendChild(this.stats.domElement);
         // 0 - FPS
         // 1 - ms per frame
-        this.stats.setMode(1);
+        this.stats.setMode(0);
 
         const clock = new THREE.Clock();
 
@@ -294,45 +214,6 @@ class GenoPrototype {
                 // By default, renderer will cache the camera's Projection matrix for rendering.
                 // Once it's changed, we need to update the projection matrix.
                 scope.camera.updateProjectionMatrix();
-            }
-        );
-        // GUI
-        const myGui = new GUI();
-        myGui.domElement.style.right = '0px';
-        myGui.domElement.style.width = '300px';
-        const geometryGUI = myGui.addFolder('Geometry');
-        geometryGUI.close();
-
-        const lightGUI = myGui.addFolder('Light');
-        lightGUI.add(pointLight, 'intensity', 0, 100)
-            .name('point light intensity')
-            .step(0.1).onChange(
-                function (value) {
-                    // Callback goes here
-                    console.log('point light intensity is: ' + value);
-                }
-            );
-        const pointLightColor = {
-            color:0x00ffff,
-        };
-        // when color changes, the point light color will change!
-        lightGUI.addColor(pointLightColor, 'color').onChange(function(value){
-            pointLight.color.set(value);
-        });
-        lightGUI.add(pointLight.position, 'x', [-20, -10, 0, 10, 20])
-        .name('point light position Z').onChange(
-            function(value) {
-                pointLight.position.x = value;
-            }
-        );
-        lightGUI.add(pointLight.position, 'z', 
-            {
-                'first': -20,
-                'second': 0,
-                'third': 20,
-            }).name('point light position Z').onChange(
-            function(value) {
-                pointLight.position.z = value;
             }
         );
     }
@@ -477,59 +358,6 @@ class GenoPrototype {
     }
 
     addFilterLayer(newCenter) {
-        // const fileterLayerMat = new THREE.MeshBasicMaterial({
-        //     color: 0x2596be,
-        //     side: THREE.FrontSide,
-        //     wireframe: true,
-        //     transparent: true,
-        // });
-
-        // fileterLayerMat.onBeforeCompile = function ( shader ) {
-        //     shader.uniforms.uTime = { value: 0.0 };
-
-        //     console.log(shader.attributes);
-
-        //     shader.vertexShader = `
-        //     uniform float uTime;
-        //     flat varying float distanceMask;
-        //     `
-        //     + shader.vertexShader;
-
-        //     shader.vertexShader = shader.vertexShader.replace(
-        //         '#include <begin_vertex>',
-        //         [
-        //             `
-        //             float dx = position.x;
-        //             float dy = position.y;
-        //             float freq = sqrt(dx*dx + dy*dy);
-        //             distanceMask = max(1.0 - smoothstep(0.0, 65.0, freq), 0.0);
-        //             float currentPositionY = 3.0 * sin(0.25 * (uTime - freq)) 
-        //             + cos(0.9 * (uTime - freq) + position.y - position.x);
-
-        //             vec3 transformed = vec3(position.x, position.y, position.z + currentPositionY);
-        //             `,
-        //         ].join( '\n' )
-        //     );
-
-        //     shader.fragmentShader = `
-        //     flat varying float distanceMask;
-        //     `
-        //     + shader.fragmentShader;
-
-        //     shader.fragmentShader = shader.fragmentShader.replace(
-        //         'vec4 diffuseColor = vec4( diffuse, opacity );',
-        //         [
-        //             `
-        //             vec4 finalColor = gl_FrontFacing ? vec4( diffuse, 1.0 ) : vec4( diffuse * 0.7, 1.0 );
-        //             finalColor.a = distanceMask;
-        //             vec4 diffuseColor = finalColor;
-        //             `,
-        //         ].join( '\n' )
-        //     );
-        //     fileterLayerMat.userData.shader = shader;
-        // };
-
-
         const newMaterial = new THREE.ShaderMaterial( {
 
             uniforms: { 
@@ -630,6 +458,62 @@ class GenoPrototype {
         );
     }
 
+    addLights(orangeGeoSphereBlobPosition,
+        purpleGeoSphereBlobPosition,
+        redGeoSphereBlobPosition) {
+        const pointLight = new THREE.PointLight(0xffffff, 100.0, 300, 1);
+        pointLight.position.set(0, 50, 0);
+        const pointLightHelper = new THREE.PointLightHelper(pointLight, 1.0, 0xff0000ff);
+
+        const pointLight1 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
+        pointLight1.position.set(orangeGeoSphereBlobPosition.x,
+            orangeGeoSphereBlobPosition.y, orangeGeoSphereBlobPosition.z);
+        const pointLightHelper1 = new THREE.PointLightHelper(pointLight1, 1.0, 0xff0000ff);
+
+        const pointLight2 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
+        pointLight2.position.set(purpleGeoSphereBlobPosition.x, 
+            purpleGeoSphereBlobPosition.y, purpleGeoSphereBlobPosition.z);
+        const pointLightHelper2 = new THREE.PointLightHelper(pointLight2, 1.0, 0xff0000ff);
+
+        const pointLight3 = new THREE.PointLight(0xffffff, 100.0, 25, 1);
+        pointLight3.position.set(redGeoSphereBlobPosition.x, 
+            redGeoSphereBlobPosition.y, redGeoSphereBlobPosition.z);
+        const pointLightHelper3 = new THREE.PointLightHelper(pointLight3, 1.0, 0xff0000ff);
+
+        const pointLight4 = new THREE.PointLight(0xffffff, 300.0, 55, 1);
+        pointLight4.position.set(-20.0, 
+            20, -20.0);
+        const pointLightHelper4 = new THREE.PointLightHelper(pointLight4, 1.0, 0xff0000ff);
+
+        const pointLight5 = new THREE.PointLight(0xffffff, 300.0, 55, 1);
+        pointLight5.position.set(20.0, 
+            20, -20.0);
+        const pointLightHelper5 = new THREE.PointLightHelper(pointLight5, 1.0, 0xff0000ff);
+
+        // const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
+        // directionalLight.position.set(0.0, 60, 40);
+        // directionalLight.target = this.baseObjectGroup;
+        // const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1.0, 0xff0000);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+
+        this.scene.add(pointLight);
+        // this.scene.add(pointLightHelper);
+        
+        // this.scene.add(pointLight1);
+        // this.scene.add(pointLightHelper1);
+        // this.scene.add(pointLight2);
+        // this.scene.add(pointLightHelper2);
+        // this.scene.add(pointLight3);
+        // this.scene.add(pointLightHelper3);
+        this.scene.add(pointLight4);
+        // this.scene.add(pointLightHelper4);
+        this.scene.add(pointLight5);
+        // this.scene.add(pointLightHelper5);
+
+        this.scene.add(ambientLight);
+        // this.scene.add(directionalLight);
+        // this.scene.add(directionalLightHelper);
+    }
 }
 
 export {GenoPrototype}
