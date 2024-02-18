@@ -11,6 +11,7 @@ class GenoPrototype {
     constructor() {
         var scope = this;
         this._this = this;
+        this.isParticleInitialized = false;
         const width = window.innerWidth;
         const height = window.innerHeight;
 
@@ -193,8 +194,7 @@ class GenoPrototype {
                 },
                 
             });
-        this.particleSystem.initScene();
-
+        
         window.addEventListener(
             'resize', function() {
                 // Resize
@@ -208,7 +208,17 @@ class GenoPrototype {
         );
     }
 
+    // Init particle scene.
+    initParticles() {
+        this.particleSystem.initScene();
+        this.isParticleInitialized = true;
+    }
+
     render() {
+        if (!this.isParticleInitialized) {
+            console.warn("The particle scene has not been initialized!");
+            return;
+        }
         // Update shader uniform;
         if (this.filteredLayerMaterial.uniforms.uTime) {
             let previousTime = this.filteredLayerMaterial.uniforms.uTime.value;
@@ -506,6 +516,7 @@ class GenoPrototype {
     }
 
     dispose() {
+        this.isParticleInitialized = false;
         this.particleSystem.dispose();
         if (this.transparentMaterial) {
             this.transparentMaterial.dispose();

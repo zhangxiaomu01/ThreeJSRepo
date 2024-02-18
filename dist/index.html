@@ -23,7 +23,18 @@
         <script type="module">
             console.log("Geno prototype runs!");
             let isRunning = true;
+            // Example usage:
+            // 1. Get the genoPrototype object;
             let genoPrototype = getGenoPrototype();
+
+            // 2. Update particle parameters before initialize the particle;
+            // let bottomParticleParameter = getBottomParticleParameter();
+            // bottomParticleParameter.radialVelocity.theta = 5;
+            // let upParticleParameter = getUpParticleParameter();
+            // upParticleParameter.radialVelocity.theta = 25;
+
+            // 3. Call initParticles to finish the setup.
+            initParticles();
 
             // show FPS performance panel
             // showFPSPanel();
@@ -47,7 +58,9 @@
 
             render();
 
-            // Call this to stop rendering / garbage collection.
+            /** 
+             * Call this to stop rendering / garbage collection.
+             * */
             window.stopRendering = function stopRendering() {
                 isRunning = false;
                 genoPrototype.dispose();

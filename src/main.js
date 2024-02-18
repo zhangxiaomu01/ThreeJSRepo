@@ -47,8 +47,36 @@ function updateBloomEffect(threshold, strength, radius) {
     genoPrototype.bloomPass.radius = radius;
 }
 
+/**
+ * Gets the particle configs for the bottom particle emitters. 
+ * Update this parameter then call {@linkcode initParticles} to initialize the particle system.
+ * @returns {Object} bottom particle configs.
+ */
+function getBottomParticleParameter() {
+    return genoPrototype.particleSystem.bottomParticleParamter;
+}
+
+/**
+ * Gets the particle configs for the up particle emitters. 
+ * Update this parameter then call {@linkcode initParticles} to initialize the particle system.
+ * @returns {Object} up particle configs.
+ */
+function getUpParticleParameter() {
+    return genoPrototype.particleSystem.upParticleParamter;
+}
+
+/**
+ * Initialize the particle system based on the input particle configs.
+ */
+function initParticles() {
+    genoPrototype.initParticles();
+}
+
 window.getGenoPrototype = getGenoPrototype;
 window.showFPSPanel = showFPSPanel;
 window.getCamera = getCamera;
 window.setUpperSphereRotateSpeed = setUpperSphereRotateSpeed;
 window.updateBloomEffect = updateBloomEffect;
+window.getBottomParticleParameter = getBottomParticleParameter;
+window.getUpParticleParameter = getUpParticleParameter;
+window.initParticles = initParticles;
