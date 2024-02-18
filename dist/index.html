@@ -24,11 +24,6 @@
             console.log("Geno prototype runs!");
             let genoPrototype = getGenoPrototype();
 
-            function render() {
-                genoPrototype.render();
-                requestAnimationFrame(render);
-            }
-
             // show FPS performance panel
             // showFPSPanel();
 
@@ -38,6 +33,14 @@
 
             // Sets the upper sphere rotate speed.
             // setUpperSphereRotateSpeed(0.002);
+
+            // Updates the bloom effect.
+            // updateBloomEffect(0.1, 0.3, 0.3);
+
+            function render() {
+                genoPrototype.render();
+                requestAnimationFrame(render);
+            }
 
             render();
         </script>

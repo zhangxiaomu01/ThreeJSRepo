@@ -119,15 +119,15 @@ class GenoPrototype {
 
         const renderBaseScene = new RenderPass( this.scene, this.camera );
         const renderScene = new RenderPass( this.bloomScene, this.camera );
-        const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
-        bloomPass.threshold = 0.1;
-        bloomPass.strength = 0.3;
-        bloomPass.radius = 0.3;
+        this.bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
+        this.bloomPass.threshold = 0.1;
+        this.bloomPass.strength = 0.3;
+        this.bloomPass.radius = 0.3;
 
         this.bloomComposer = new EffectComposer( this.renderer );
         this.bloomComposer.renderToScreen = false;
         this.bloomComposer.addPass( renderScene );
-        this.bloomComposer.addPass( bloomPass );
+        this.bloomComposer.addPass( this.bloomPass );
 
         const mixPass = new ShaderPass(
             new THREE.ShaderMaterial( {

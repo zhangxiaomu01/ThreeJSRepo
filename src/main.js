@@ -33,7 +33,22 @@ function setUpperSphereRotateSpeed(newSpeed) {
     genoPrototype.upperSphereRotateSpeed = newSpeed;
 }
 
+/**
+ * Updates the strength of the bloom effect. 
+ * See {@linkcode UnrealBloomPass} for more detail.
+ * 
+ * @param {number} threshold 
+ * @param {number} strength 
+ * @param {number} radius 
+ */
+function updateBloomEffect(threshold, strength, radius) {
+    genoPrototype.bloomPass.threshold = threshold;
+    genoPrototype.bloomPass.strength = strength;
+    genoPrototype.bloomPass.radius = radius;
+}
+
 window.getGenoPrototype = getGenoPrototype;
 window.showFPSPanel = showFPSPanel;
 window.getCamera = getCamera;
 window.setUpperSphereRotateSpeed = setUpperSphereRotateSpeed;
+window.updateBloomEffect = updateBloomEffect;
