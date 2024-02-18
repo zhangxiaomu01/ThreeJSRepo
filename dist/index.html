@@ -19,6 +19,27 @@
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
         
-        <script src="./main.js" async defer></script>
+        <script src="./main.js"></script>
+        <script type="module">
+            console.log("Geno prototype runs!");
+            let genoPrototype = getGenoPrototype();
+
+            function render() {
+                genoPrototype.render();
+                requestAnimationFrame(render);
+            }
+
+            // show FPS performance panel
+            // showFPSPanel();
+
+            // Get the current camera.
+            // let camera = getCamera();
+            // camera.position.set(0.0, 110, 337);
+
+            // Sets the upper sphere rotate speed.
+            // setUpperSphereRotateSpeed(0.002);
+
+            render();
+        </script>
     </body>
 </html>

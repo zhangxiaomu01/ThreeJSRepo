@@ -1,32 +1,39 @@
-import {AlgorithmTest} from './algorithm/Tree.js'
-import {TestSelectionMaterial} from './TestSelectionMaterial.js'
 import { GenoPrototype } from './GenoPrototype/GenoPrototype.js';
-import { GenoParticle } from './GenoPrototype/GenoParticle.js';
-
-console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
 
 const genoPrototype = new GenoPrototype();
 
-function render() {
-    genoPrototype.render();
-    requestAnimationFrame(render);
-}
-
-function startRender() {
-    console.log(" Render starts! ");
-    render();
-}
-
-startRender();
-
+/**
+ * Get the {@linkcode GenoPrototype} object. All the emitters / camera / scene are defined
+ * here.
+ * @returns {GenoPrototype}
+ */
 function getGenoPrototype() {
     return genoPrototype;
 }
 
+/**
+ * Show fps performance panel.
+ */
 function showFPSPanel() {
     genoPrototype.showFPSPanel();
 }
 
+/**
+ * Gets the current camera.
+ */
+function getCamera() {
+    return genoPrototype.camera;
+}
+
+/**
+ * Sets the rotation speed of the upper spheres.
+ * @param {number} newSpeed new speed.
+ */
+function setUpperSphereRotateSpeed(newSpeed) {
+    genoPrototype.upperSphereRotateSpeed = newSpeed;
+}
+
 window.getGenoPrototype = getGenoPrototype;
-window.startRender = startRender;
 window.showFPSPanel = showFPSPanel;
+window.getCamera = getCamera;
+window.setUpperSphereRotateSpeed = setUpperSphereRotateSpeed;

@@ -251,7 +251,6 @@ class GenoParticle {
           body: this.createMesh(/* meshId = */ ii),
           type: 'up'
         });
-        console.log(upEmitter);
         this.upParticleEmitters.push(upEmitter);
         system.addEmitter(upEmitter);
       }
@@ -365,7 +364,6 @@ class GenoParticle {
   initScene() {
     let scope = this;
     this.getMeshParticleSystem(this.scene, this.camera).then(system => {
-        console.log(system);
         scope.nebulaSystem = system;
     });
   }

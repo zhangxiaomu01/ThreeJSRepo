@@ -1,4 +1,3 @@
-import { PlaneGeometry } from '../../threejs_r155/build/three.module.js';
 import Stats from '../../threejs_r155/examples/jsm/libs/stats.module.js';
 import { THREE, OrbitControls, RGBELoader, OBJLoader, 
     EffectComposer, ShaderPass,
@@ -10,12 +9,12 @@ import { GenoParticle } from './GenoParticle.js'
  */
 class GenoPrototype {
     constructor() {
-        console.log("GenoPrototype executed!");
         var scope = this;
         this._this = this;
         const width = window.innerWidth;
         const height = window.innerHeight;
 
+        this.upperSphereRotateSpeed = 0.002;
         this.baseObjectGroup = new THREE.Group();
         this.filteredClusterGroup = new THREE.Group();
 
@@ -110,8 +109,8 @@ class GenoPrototype {
             redGeoSphereBlobPosition);
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
-        this.camera.position.set(0, 100, 300);
-        this.camera.lookAt(0, 100, 0);
+        this.camera.rotateX(-Math.PI / 16.0);
+        this.camera.position.set(0.0, 110, 337);
 
         this.renderer = new THREE.WebGLRenderer( {antialias: true} );
         this.renderer.setSize(width, height);
@@ -170,7 +169,7 @@ class GenoPrototype {
         this.finalComposer.addPass( mixPass );
         this.finalComposer.addPass( outputPass );
 
-        const controls = new OrbitControls(this.camera, this.renderer.domElement);
+        // const controls = new OrbitControls(this.camera, this.renderer.domElement);
         document.getElementById("webgl").appendChild(this.renderer.domElement);
 
         // Particles
@@ -221,7 +220,7 @@ class GenoPrototype {
 
         // Rotate the upper spheres.
         for (let ii = 0; ii < this.filteredClusterGroup.children.length; ++ii) {
-            this.filteredClusterGroup.children[ii].rotateY(0.002);
+            this.filteredClusterGroup.children[ii].rotateY(this.upperSphereRotateSpeed);
             this.particleSystem.upParticleEmitters[ii].setRotation(this.filteredClusterGroup.children[ii].rotation);;
         }
 
@@ -310,7 +309,6 @@ class GenoPrototype {
             },
             // called when loading is in progresses
             function ( xhr ) {
-                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
             },
             // called when loading has errors
             function ( error ) {
@@ -432,7 +430,6 @@ class GenoPrototype {
             },
             // called when loading is in progresses
             function ( xhr ) {
-                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
             },
             // called when loading has errors
             function ( error ) {
