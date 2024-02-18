@@ -367,6 +367,12 @@ class GenoParticle {
         scope.nebulaSystem = system;
     });
   }
+
+  dispose() {
+    if (this.nebulaSystem) {
+      this.nebulaSystem.destroy();
+    }
+  }
 }
 
 export {GenoParticle};

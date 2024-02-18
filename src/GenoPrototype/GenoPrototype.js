@@ -21,23 +21,23 @@ class GenoPrototype {
         // instantiate a loader
         this.objLoader = new OBJLoader();
 
-        const hdrEquirect = new RGBELoader().load(
+        this.hdrEquirect = new RGBELoader().load(
             "./resources/GenoPrototype/HDR_Light_Studio_Free_HDRI_Design_01.hdr",  
             () => { 
-              hdrEquirect.mapping = THREE.EquirectangularReflectionMapping; 
+                scope.hdrEquirect.mapping = THREE.EquirectangularReflectionMapping; 
             }
           );
 
-        const hdrMap02 = new RGBELoader().load(
+        this.hdrMap02 = new RGBELoader().load(
             "./resources/GenoPrototype/HDR_Light_Studio_Free_HDRI_Design_02.hdr",  
             () => { 
-                hdrMap02.mapping = THREE.EquirectangularReflectionMapping; 
+                scope.hdrMap02.mapping = THREE.EquirectangularReflectionMapping; 
             }
         );
     
     
         this.scene = new THREE.Scene();
-        this.scene.environment = hdrMap02;
+        this.scene.environment = this.hdrMap02;
         this.bloomScene = new THREE.Scene();
 
         this.transparentMaterial = new THREE.MeshPhysicalMaterial({
@@ -50,7 +50,7 @@ class GenoPrototype {
             reflectivity: 0.9,
             transmission: 0.5, // Add transparency
             thickness: 0.2, // Add refraction!
-            envMap: hdrEquirect,
+            envMap: this.hdrEquirect,
             envMapIntensity: 2.0,
         }); 
 
@@ -66,7 +66,7 @@ class GenoPrototype {
             clearcoat: 0.8,
             clearcoatRoughness: 0.0,
             reflectivity: 0.6,
-            envMap: hdrMap02,
+            envMap: this.hdrMap02,
             envMapIntensity: 2.0,
         }); 
 
@@ -503,6 +503,25 @@ class GenoPrototype {
         // 0 - FPS
         // 1 - ms per frame
         this.stats.setMode(0);
+    }
+
+    dispose() {
+        this.particleSystem.dispose();
+        if (this.transparentMaterial) {
+            this.transparentMaterial.dispose();
+        }
+        if (this.clusteredSphereMaterial) {
+            this.clusteredSphereMaterial.dispose();
+        }
+        if (this.filteredLayerMaterial) {
+            this.filteredLayerMaterial.dispose();
+        }
+        if (this.hdrEquirect) {
+            this.hdrEquirect.dispose();
+        }
+        if (this.hdrMap02) {
+            this.hdrMap02.dispose();
+        }
     }
 }
 

@@ -22,6 +22,7 @@
         <script src="./main.js"></script>
         <script type="module">
             console.log("Geno prototype runs!");
+            let isRunning = true;
             let genoPrototype = getGenoPrototype();
 
             // show FPS performance panel
@@ -39,10 +40,18 @@
 
             function render() {
                 genoPrototype.render();
-                requestAnimationFrame(render);
+                if (isRunning) {
+                    requestAnimationFrame(render);
+                }
             }
 
             render();
+
+            // Call this to stop rendering / garbage collection.
+            window.stopRendering = function stopRendering() {
+                isRunning = false;
+                genoPrototype.dispose();
+            }
         </script>
     </body>
 </html>
