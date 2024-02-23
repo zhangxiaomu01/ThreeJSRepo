@@ -247,9 +247,8 @@ class GenoPrototype {
     addBaseObjects() {
         const baseMeshPath = './resources/GenoPrototype/BaseMesh.obj';
         const baseCupMeshPath = './resources/GenoPrototype/BaseCupsMesh.obj';
-        
         this.loadBaseObj(baseMeshPath, this.baseObjectGroup);
-        this.loadBaseObj(baseCupMeshPath, this.baseObjectGroup);
+        this.loadBaseObj(baseCupMeshPath, this.baseObjectGroup, true);
     }
 
     addGenoSphereBlob(newCenter, material, newColor) {
@@ -439,27 +438,56 @@ class GenoPrototype {
         );
     }
 
-    loadBaseObj(path, parentObject) {
+    loadBaseObj(path, parentObject, isBaseCup = false) {
         var scope = this;
         this.objLoader.load(
             // resource URL
             path,
             // called when resource is loaded
             function ( object ) {
-
-                const instancedMesh = new THREE.InstancedMesh(
+                const gap = 30;
+                const cupGap = 2.8;
+                const cupOffset = 9.8;
+                const instancedMesh = isBaseCup 
+                ? new THREE.InstancedMesh(
+                    object.children[0].geometry,
+                    scope.transparentMaterial,
+                    100)
+                : new THREE.InstancedMesh(
                     object.children[0].geometry,
                     scope.transparentMaterial,
                     9);
-                const gap = 30;
-                for(let ii = 0; ii < 3; ++ii) {
-                    for (let jj = 0; jj < 3; ++jj) {
-                        let matrix = new THREE.Matrix4();
-                        matrix.makeTranslation(gap * (ii - 1), 0, gap * (jj - 1));
-                        instancedMesh.setMatrixAt(ii * 3 + jj, matrix);
+                
+                if (isBaseCup) {
+                    for(let ii = 0; ii < 10; ++ii) {
+                        for (let jj = 0; jj < 10; ++jj) {
+                            let matrix = new THREE.Matrix4();
+                            matrix.makeTranslation(
+                            cupGap * (ii - 1) - cupOffset, 
+                            0, 
+                            cupGap * (jj - 1) - cupOffset);
+                            instancedMesh.setMatrixAt(ii * 10 + jj, matrix);
+                        }
                     }
+
+                    for(let ii = 0; ii < 3; ++ii) {
+                        for (let jj = 0; jj < 3; ++jj) {
+                            const newInstancedMesh = instancedMesh.clone();
+                            newInstancedMesh.position.set(gap * (ii - 1), 0, gap * (jj - 1));
+                            parentObject.children.push(newInstancedMesh);
+                        }
+                    }
+
+                } else {
+                    for(let ii = 0; ii < 3; ++ii) {
+                        for (let jj = 0; jj < 3; ++jj) {
+                            let matrix = new THREE.Matrix4();
+                            matrix.makeTranslation(gap * (ii - 1), 0, gap * (jj - 1));
+                            instancedMesh.setMatrixAt(ii * 3 + jj, matrix);
+                        }
+                    }
+                    parentObject.children.push(instancedMesh);
                 }
-                parentObject.children.push(instancedMesh);
             },
             // called when loading is in progresses
             function ( xhr ) {
