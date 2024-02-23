@@ -247,19 +247,9 @@ class GenoPrototype {
     addBaseObjects() {
         const baseMeshPath = './resources/GenoPrototype/BaseMesh.obj';
         const baseCupMeshPath = './resources/GenoPrototype/BaseCupsMesh.obj';
-        const gap = 30;
-        for(let ii = 0; ii < 3; ++ii) {
-            for (let jj = 0; jj < 3; ++jj) {
-                this.loadObj(
-                    baseMeshPath, 
-                    this.baseObjectGroup, 
-                    new THREE.Vector3(gap * (ii - 1), 0, gap * (jj - 1)));
-                this.loadObj(
-                    baseCupMeshPath, 
-                    this.baseObjectGroup, 
-                    new THREE.Vector3(gap * (ii - 1), 0, gap * (jj - 1)));
-            }
-        }
+        
+        this.loadBaseObj(baseMeshPath, this.baseObjectGroup);
+        this.loadBaseObj(baseCupMeshPath, this.baseObjectGroup);
     }
 
     addGenoSphereBlob(newCenter, material, newColor) {
@@ -437,6 +427,39 @@ class GenoPrototype {
                     object.children[0].position.set(newPosition.x, newPosition.y, newPosition.z);
                 }
                 parentObject.children.push(object.children[0]);
+            },
+            // called when loading is in progresses
+            function ( xhr ) {
+            },
+            // called when loading has errors
+            function ( error ) {
+                console.log( 'An error happened' );
+                console.log(error);
+            }
+        );
+    }
+
+    loadBaseObj(path, parentObject) {
+        var scope = this;
+        this.objLoader.load(
+            // resource URL
+            path,
+            // called when resource is loaded
+            function ( object ) {
+
+                const instancedMesh = new THREE.InstancedMesh(
+                    object.children[0].geometry,
+                    scope.transparentMaterial,
+                    9);
+                const gap = 30;
+                for(let ii = 0; ii < 3; ++ii) {
+                    for (let jj = 0; jj < 3; ++jj) {
+                        let matrix = new THREE.Matrix4();
+                        matrix.makeTranslation(gap * (ii - 1), 0, gap * (jj - 1));
+                        instancedMesh.setMatrixAt(ii * 3 + jj, matrix);
+                    }
+                }
+                parentObject.children.push(instancedMesh);
             },
             // called when loading is in progresses
             function ( xhr ) {
