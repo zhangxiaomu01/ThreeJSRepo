@@ -67,14 +67,18 @@ class GenoParticle {
       particleGeometry, 
       orangeParticleMat);
     orangeMesh.scale.x = 0.5;
+    // Particle should render on top of base grass mesh.
+    orangeMesh.renderOrder = 2;
     let purpleMesh = new THREE.Mesh(
       particleGeometry, 
       purpleParticleMat);
     purpleMesh.scale.y = 0.5;
+    purpleMesh.renderOrder = 2;
     let redMesh = new THREE.Mesh(
       particleGeometry, 
       redParticleMat);
-    purpleMesh.scale.z = 0.5;
+    redMesh.scale.z = 0.5;
+    redMesh.renderOrder = 2;
     this.particleMeshes = [orangeMesh, purpleMesh, redMesh];
 
     this.bottomParticleParamter = {

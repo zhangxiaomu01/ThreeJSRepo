@@ -44,15 +44,16 @@ class GenoPrototype {
         this.transparentMaterial = new THREE.MeshPhysicalMaterial({
             color: 0x000000,
             transparent: true,
-            opacity: 0.7,
+            opacity: 0.85,
+            side: THREE.DoubleSide,
             depthTest: true,
             metalness: 0.0,  
             roughness: 0,
             reflectivity: 0.9,
-            transmission: 0.5, // Add transparency
+            transmission: 0.9, // Add transparency
             thickness: 0.2, // Add refraction!
             envMap: this.hdrEquirect,
-            envMapIntensity: 2.0,
+            envMapIntensity: 2.5,
         }); 
 
         this.clusteredSphereMaterial = new THREE.MeshPhysicalMaterial({
@@ -448,14 +449,20 @@ class GenoPrototype {
                 const gap = 30;
                 const cupGap = 2.8;
                 const cupOffset = 9.8;
+                let material = scope.transparentMaterial;
+                if (isBaseCup) {
+                    material = scope.transparentMaterial.clone();
+                    material.depthTest = false;
+                    // material.depthWrite = false;
+                }
                 const instancedMesh = isBaseCup 
                 ? new THREE.InstancedMesh(
                     object.children[0].geometry,
-                    scope.transparentMaterial,
+                    material,
                     100)
                 : new THREE.InstancedMesh(
                     object.children[0].geometry,
-                    scope.transparentMaterial,
+                    material,
                     9);
                 
                 if (isBaseCup) {
@@ -474,6 +481,8 @@ class GenoPrototype {
                         for (let jj = 0; jj < 3; ++jj) {
                             const newInstancedMesh = instancedMesh.clone();
                             newInstancedMesh.position.set(gap * (ii - 1), 0, gap * (jj - 1));
+                            // Needs to make sure that cup mesh is rendered above base mesh.
+                            newInstancedMesh.renderOrder = 1;
                             parentObject.children.push(newInstancedMesh);
                         }
                     }
