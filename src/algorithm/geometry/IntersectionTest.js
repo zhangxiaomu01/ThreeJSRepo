@@ -3,7 +3,7 @@ import Stats from '../../../threejs_r155/examples/jsm/libs/stats.module.js';
 import { THREE, OrbitControls, GUI, mergeGeometries } from '../../CommonImports.js'
 
 
-const gridSize = 2;
+const gridSize = 1;
 const gridNumber = 32;
 const offSet = gridSize / 2;
 
@@ -42,7 +42,7 @@ class IntersectionTest {
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 
         this.scene.add(axesHelper);
-        this.scene.add(this.mesh);
+        // this.scene.add(this.mesh);
         this.scene.add(pointLight);
         // this.scene.add(pointLightHelper);
         this.scene.add(ambientLight);
@@ -143,6 +143,8 @@ class IntersectionTest {
         let maxZ = Math.max(triangle.a.z, triangle.b.z, triangle.c.z);
 
         this.renderProcessedTriangles(triangle);
+
+        this.renderAuxiliaryObjects(true, false, false, gridSize);
     }
 
     renderProcessedTriangles(triangle) {
@@ -165,6 +167,160 @@ class IntersectionTest {
         );
         // testTriangleMesh.position.set(_sceneBasePoint.x, _sceneBasePoint.y, _sceneBasePoint.z);
         this.scene.add(testTriangleMesh);
+    }
+
+    renderAuxiliaryObjects (shouldRenderBasePoint = true,
+        shouldRenderBoundary = false,
+        shouldRenderGrids = false,
+        sceneGridSize,
+        gridBoundary = [0, 0, 0, 32, 32, 32]) {
+        if (shouldRenderBasePoint) {
+            let startingPoint = new THREE.Mesh(
+                new THREE.BoxGeometry(0.6, 0.6, 0.6),
+                new THREE.MeshBasicMaterial({
+                    color: 0xff0000,
+                })
+            );
+            // startingPoint.position.set(_sceneBasePoint.x, _sceneBasePoint.y, _sceneBasePoint.z);
+            this.scene.add(startingPoint);
+        }
+
+        if (shouldRenderBoundary) {
+            // Render grid
+            let startGridX = gridBoundary[0];
+            let startGridY = gridBoundary[1];
+            let startGridZ = gridBoundary[2];
+            let endGridX = gridBoundary[3];
+            let endGridY = gridBoundary[4];
+            let endGridZ = gridBoundary[5];
+
+            let totalNumberOfGridsX = endGridX - startGridX;
+            let totalNumberOfGridsY = endGridY - startGridY;
+            let totalNumberOfGridsZ = endGridZ - startGridZ;
+            
+            const boxGeometry = new THREE.BoxGeometry(
+                totalNumberOfGridsX * sceneGridSize,
+                totalNumberOfGridsY * sceneGridSize,
+                totalNumberOfGridsZ * sceneGridSize
+            );
+            const object = new THREE.Mesh( boxGeometry, new THREE.MeshBasicMaterial( 0xff0000 ) );
+            object.position.set(
+                totalNumberOfGridsX / 2 * sceneGridSize,
+                totalNumberOfGridsY / 2 * sceneGridSize,
+                totalNumberOfGridsZ / 2 * sceneGridSize,
+            );
+            const box = new THREE.BoxHelper( object, 0xff00ff );
+            this.scene.add(box);
+        }
+
+        if (shouldRenderGrids) {
+            let halfGridSize = sceneGridSize / 2.0;
+            // Render grid
+            let startGridX = gridBoundary[0];
+            let startGridY = gridBoundary[1];
+            let startGridZ = gridBoundary[2];
+            let endGridX = gridBoundary[3];
+            let endGridY = gridBoundary[4];
+            let endGridZ = gridBoundary[5];
+
+            let totalNumberOfGridsX = endGridX - startGridX;
+            let totalNumberOfGrids = totalNumberOfGridsX * (endGridY - startGridY) * (endGridZ - startGridZ);
+            let totalNumberOfGrids2DXY = totalNumberOfGridsX * (endGridY - startGridY);
+            let gridGeometry = new THREE.BoxGeometry(sceneGridSize, sceneGridSize, sceneGridSize);
+
+            const newMaterial = new THREE.ShaderMaterial( {
+
+                uniforms: { 
+                    'thickness': { value: 0.3 }, 
+                    'uTime': { value: 0.0 },
+                },
+                vertexShader: `
+                attribute vec3 center;
+                varying vec3 vCenter;
+    
+                flat varying float distanceMask;
+    
+                uniform float uTime;
+    
+                void main() {
+    
+                    vCenter = center;
+    
+                    float dx = position.x;
+                    float dy = position.y;
+                    float freq = sqrt(dx*dx + dy*dy);
+                    distanceMask = max(1.0 - smoothstep(0.0, 65.0, freq), 0.0);
+                    float currentPositionY = 3.0 * sin(0.25 * (uTime - freq)) 
+                        + cos(0.9 * (uTime - freq) + position.y - position.x);
+    
+                    vec3 newPosition = vec3(position.x, position.y, position.z + currentPositionY);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+    
+                }
+                `,
+                fragmentShader: `
+                uniform float thickness;
+    
+                varying vec3 vCenter;
+                flat varying float distanceMask;
+    
+                void main() {
+    
+                    vec3 afwidth = fwidth( vCenter.xyz );
+    
+                    vec3 edge3 = smoothstep( ( thickness - 1.0 ) * afwidth, thickness * afwidth, vCenter.xyz );
+    
+                    float edge = 1.0 - min( min( edge3.x, edge3.y ), edge3.z );
+    
+                    gl_FragColor.rgb = gl_FrontFacing ? vec3( 0.145, 0.589, 0.745 ) : vec3( 0.114, 0.278, 0.341 );
+                    gl_FragColor.a = edge * distanceMask * 0.4;
+    
+                }
+                `,
+                side: THREE.DoubleSide,
+                transparent: true,
+                wireframe: true,
+                alphaToCoverage: true // only works when WebGLRenderer's "antialias" is set to "true"
+    
+            } );
+            newMaterial.extensions.derivatives = true;
+
+            let instancedMesh = new THREE.InstancedMesh(
+                gridGeometry,
+                new THREE.MeshBasicMaterial(
+                    {
+                        color: 0x0000ff,
+                        wireframe: true
+                    }
+                ),
+                totalNumberOfGrids
+            );
+            let transformMatrix = new THREE.Matrix4();
+            let startPosX = halfGridSize + startGridX * sceneGridSize;
+            let startPosY = halfGridSize + startGridY * sceneGridSize;
+            let startPosZ = halfGridSize + startGridZ * sceneGridSize;
+
+            let posX = startPosX;
+            let posY = startPosY;
+            let posZ = startPosZ;
+            for (let ii = 0; ii < totalNumberOfGrids; ++ii) {
+                transformMatrix = transformMatrix.setPosition(posX, posY, posZ);
+                instancedMesh.setMatrixAt(ii, transformMatrix);
+                if ((ii + 1) % totalNumberOfGrids2DXY == 0) {
+                    posZ += sceneGridSize;
+                    posX = startPosX;
+                    posY = startPosY;
+                } else if ((ii + 1) % totalNumberOfGridsX == 0) {
+                    posY += sceneGridSize
+                    posX = startPosX;
+                } else {
+                    posX += sceneGridSize;
+                }
+            }
+            this.scene.add(
+                instancedMesh
+            );
+        }
     }
 
 };
