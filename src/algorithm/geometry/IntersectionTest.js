@@ -3,6 +3,10 @@ import Stats from '../../../threejs_r155/examples/jsm/libs/stats.module.js';
 import { THREE, OrbitControls, GUI, mergeGeometries } from '../../CommonImports.js'
 
 
+const gridSize = 2;
+const gridNumber = 32;
+const offSet = gridSize / 2;
+
 class IntersectionTest {
 
     constructor() {
@@ -13,51 +17,15 @@ class IntersectionTest {
         const height = window.innerHeight;
     
         this.scene = new THREE.Scene();
-        const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
-        const sphereGeometry = new THREE.SphereGeometry(20,30,30);
-        const circleGeometry = new THREE.CircleGeometry(10);
-    
-        circleGeometry.translate(0, 20, 0);
-        sphereGeometry.translate(0, -40, 0);
+        const boxGeometry = new THREE.BoxGeometry(gridSize, gridSize, gridSize);
 
-        const texLoader = new THREE.TextureLoader();
-        const testImage = texLoader.load('../resources/checker.jpg');
-
-        // MeshBasicMaterial不受光照影响
-        const material = new THREE.MeshBasicMaterial({
-            // color: 0xffffff,
-            map: testImage,
+        const phongMaterial = new THREE.MeshBasicMaterial({
+            color: 0x0000ff,
+            wireframe: true,
         });
 
-        const transparentMaterial = new THREE.MeshBasicMaterial({
-            color: 0xffffff, //设置材质颜色
-            transparent:true,//开启透明
-            opacity:0.5,//设置透明度
-        });
-
-        // MeshLambertMaterial受光照影响
-        const lambertMaterial = new THREE.MeshLambertMaterial({
-            color: 0xffffff,
-        });
-
-        const phongMaterial = new THREE.MeshPhongMaterial({
-            color: 0xffffff,
-            side: THREE.DoubleSide,
-            shininess: 20,
-            specular: 0x444444, 
-        });
-
-        
-        // Occulusion query
-        // https://raw.githack.com/simon-paris/three.js/occlusion-queries-with-build/examples/webgl_occlusionqueries.html
-
-        const mergedGeometry = 
-        mergeGeometries([boxGeometry, sphereGeometry, circleGeometry], false);
-
-        console.log(mergedGeometry);
-
-        this.mesh = new THREE.Mesh(mergedGeometry, phongMaterial);
-        this.mesh.position.set(0, 0, 0);
+        this.mesh = new THREE.Mesh(boxGeometry, phongMaterial);
+        this.mesh.position.set(offSet, offSet, offSet);
 
         const axesHelper = new THREE.AxesHelper(150);
 
@@ -70,39 +38,27 @@ class IntersectionTest {
         directionalLight.position.set(0.0, 60, 40);
         directionalLight.target = this.mesh;
         const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 1.0, 0xff0000);
-        // directionalLight.rotateOnAxis(new THREE.Vector3(1.0, 0.0, 0.0), THREE.MathUtils.degToRad(45));
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 
         this.scene.add(axesHelper);
         this.scene.add(this.mesh);
         this.scene.add(pointLight);
-        this.scene.add(pointLightHelper);
+        // this.scene.add(pointLightHelper);
         this.scene.add(ambientLight);
         this.scene.add(directionalLight);
-        this.scene.add(directionalLightHelper);
-
-        // Generate random box
-        // GenerateTestData.GenerateBox(2, scene);
-        // GLTFLoaderTest.LoadGLTFModel(scene);
+        // this.scene.add(directionalLightHelper);
 
         this.camera = new THREE.PerspectiveCamera(30, width / height, 1, 3000);
-        this.camera.position.set(20, 20, 20);
+        this.camera.position.set(80, 80, 80);
         this.camera.lookAt(this.mesh.position);
 
-        console.log('查看当前屏幕设备像素比',window.devicePixelRatio);
         this.renderer = new THREE.WebGLRenderer( {antialias: true,} );
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setClearColor(0x444444, 1.0);
 
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
-        // We have a render loop -> no need a event listener.
-        // controls.addEventListener(
-        //     'change', function() {
-        //         renderer.render(scene,camera);
-        //     }
-        // );
 
         document.getElementById("webgl").appendChild(this.renderer.domElement);
 
@@ -112,8 +68,6 @@ class IntersectionTest {
         // 0 - FPS
         // 1 - ms per frame
         this.stats.setMode(1);
-
-        const clock = new THREE.Clock();
 
         window.addEventListener(
             'resize', function() {
@@ -126,59 +80,19 @@ class IntersectionTest {
                 scope.camera.updateProjectionMatrix();
             }
         );
-    
-        // window.onresize = function () {
-        //     // Resize
-        //     render.setSize(window.innerWidth, window.innerHeight);
-    
-        //     camera.aspect = window.innerWidth / window.innerHeight;
-        //     // By default, renderer will cache the camera's Projection matrix for rendering.
-        //     // Once it's changed, we need to update the projection matrix.
-        //     camera.updateProjectionMatrix();
-        // };
+
+        this.testTriangleVoxel();
 
         // GUI
         const myGui = new GUI();
         myGui.domElement.style.right = '0px';
         myGui.domElement.style.width = '300px';
-        const geometryGUI = myGui.addFolder('Geometry');
+        myGui.open();
+        const geometryGUI = myGui.addFolder('StartTest');
         geometryGUI.close();
         geometryGUI.add(this.mesh.position, 'x', -100, 100).name('main object position X');
         geometryGUI.add(this.mesh.position, 'y', -100, 100).name('main object position Y');
         geometryGUI.add(this.mesh.position, 'z', -100, 100).name('main object position Z');
-
-        const lightGUI = myGui.addFolder('Light');
-        lightGUI.add(pointLight, 'intensity', 0, 100)
-            .name('point light intensity')
-            .step(0.1).onChange(
-                function (value) {
-                    // Callback goes here
-                    console.log('point light intensity is: ' + value);
-                }
-            );
-        const pointLightColor = {
-            color:0x00ffff,
-        };
-        // when color changes, the point light color will change!
-        lightGUI.addColor(pointLightColor, 'color').onChange(function(value){
-            pointLight.color.set(value);
-        });
-        lightGUI.add(pointLight.position, 'x', [-20, -10, 0, 10, 20])
-        .name('point light position Z').onChange(
-            function(value) {
-                pointLight.position.x = value;
-            }
-        );
-        lightGUI.add(pointLight.position, 'z', 
-            {
-                'first': -20,
-                'second': 0,
-                'third': 20,
-            }).name('point light position Z').onChange(
-            function(value) {
-                pointLight.position.z = value;
-            }
-        );
     }
 
     getRenderer() {
@@ -186,13 +100,71 @@ class IntersectionTest {
     }
     
     render() {
-        // const spt = clock.getDelta() * 1000; // ms
-        // console.log("Time between two frames: ", spt);
-        // console.log("FPS: ", 1000 / spt);
-
         this.stats.update();
         this.renderer.render(this.scene, this.camera); //Render
-        this.mesh.rotateY(0.01);
+    }
+
+    testTriangleVoxel() {
+        console.log("This is just a test =============================");
+        const triangle = new THREE.Triangle();
+        const offSet = 20;
+
+        // X projection - Right
+        triangle.a.set(10, 0, 30);
+        triangle.b.set(0, 0, 0);
+        triangle.c.set(10, 40,  30);
+
+        // triangle.a.set(10, 0, 30);
+        // triangle.b.set(0, 0, 0);
+        // triangle.c.set(10, 1,  30);
+
+        // Y projection - Top
+        // triangle.a.set(20, 20, 40);
+        // triangle.b.set(0, 0, 0);
+        // triangle.c.set(40, 0,  0);
+
+        // Z projection - Front
+        // triangle.a.set(-16 - basePt.x + offSet, 11  - basePt.y + offSet, 17  - basePt.z + offSet);
+        // triangle.b.set(-32  - basePt.x + offSet, 32  - basePt.y + offSet, -8 - basePt.z + offSet);
+        // triangle.c.set(-34  - basePt.x + offSet, 13  - basePt.y + offSet,  - basePt.z + offSet);
+
+        // Z projection 2 - Front
+        // triangle.a.set(20, 40, 20);
+        // triangle.b.set(0, 0, 0);
+        // triangle.c.set(40, 0,  0);
+
+        //
+        let minX = Math.min(triangle.a.x, triangle.b.x, triangle.c.x);
+        let minY = Math.min(triangle.a.y, triangle.b.y, triangle.c.y);
+        let minZ = Math.min(triangle.a.z, triangle.b.z, triangle.c.z);
+
+        let maxX = Math.max(triangle.a.x, triangle.b.x, triangle.c.x);
+        let maxY = Math.max(triangle.a.y, triangle.b.y, triangle.c.y);
+        let maxZ = Math.max(triangle.a.z, triangle.b.z, triangle.c.z);
+
+        this.renderProcessedTriangles(triangle);
+    }
+
+    renderProcessedTriangles(triangle) {
+        let t = triangle;
+        let geometry = new THREE.BufferGeometry();
+        const vertices = new Float32Array(
+            [
+                t.a.x, t.a.y, t.a.z,
+                t.b.x, t.b.y, t.b.z,
+                t.c.x, t.c.y, t.c.z
+            ]
+        );
+        geometry.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
+        let testTriangleMesh = new THREE.Mesh(
+            geometry,
+            new THREE.MeshBasicMaterial({
+                color: 0xff0000,
+                wireframe: true,
+            })
+        );
+        // testTriangleMesh.position.set(_sceneBasePoint.x, _sceneBasePoint.y, _sceneBasePoint.z);
+        this.scene.add(testTriangleMesh);
     }
 
 };
