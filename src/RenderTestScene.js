@@ -1,6 +1,6 @@
 // Stat.js
 import Stats from '../threejs_r155/examples/jsm/libs/stats.module.js';
-import { THREE, OrbitControls, GUI, mergeGeometries } from '../CommonImports.js'
+import { THREE, OrbitControls, GUI, mergeGeometries } from './CommonImports.js'
 
 
 class RenderTestScene {
