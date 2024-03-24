@@ -1,5 +1,7 @@
 import { THREE } from '../../CommonImports.js'
 
+// Reference: https://discourse.threejs.org/t/wireframe-of-quads/17924
+
 setGeom(new THREE.PlaneBufferGeometry(5, 5, 11, 12), 0x00ffff, -10, 0, 0);
 setGeom(new THREE.CylinderBufferGeometry(1, 2, 5, 11, 12), 0xffff00, -5, 0, 0);
 setGeom(new THREE.RingBufferGeometry(1, 2.5, 11, 6), 0x888888, 0, 0, 0);
