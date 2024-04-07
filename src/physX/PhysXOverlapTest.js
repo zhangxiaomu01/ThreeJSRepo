@@ -18,7 +18,7 @@ class PhysXOverlapTest {
         console.log("device pixel ratio: " + window.devicePixelRatio);
     
         this.scene = new THREE.Scene();
-        const boxGeometry = new THREE.BoxGeometry(30, 30, 30);
+        const boxGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
     
         this.defaultMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff,
@@ -28,7 +28,7 @@ class PhysXOverlapTest {
         });
 
         this.mesh = new THREE.Mesh(boxGeometry, this.defaultMaterial);
-        this.mesh.position.set(0, 0, 0);
+        this.mesh.position.set(0, 10, 0);
 
         // Light source
         const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
@@ -72,7 +72,7 @@ class PhysXOverlapTest {
 
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
 
-        // document.getElementById("webgl").appendChild(this.renderer.domElement);
+        document.getElementById("webgl").appendChild(this.renderer.domElement);
 
         // Performance monitor
         this.stats = new Stats();
@@ -110,6 +110,7 @@ class PhysXOverlapTest {
     }
 
     testPhysX() {
+        let scope = this;
         PhysX().then(function(PhysX) {
             var version = PhysX.PHYSICS_VERSION;
             console.log('PhysX loaded! Version: ' + ((version >> 24) & 0xff) + '.' + ((version >> 16) & 0xff) + '.' + ((version >> 8) & 0xff));
@@ -174,38 +175,8 @@ class PhysXOverlapTest {
             PhysX.destroy(tolerances);
             console.log('Created scene objects');
 
-            // setup debug drawing stuff
-            const { mat4, vec4, vec3 } = glMatrix;
-            const viewMatrix = mat4.create();
-            const projectionMatrix = mat4.create();
-            const viewProjectionMatrix = mat4.create();
-            const tmpVec4 = vec4.create();
-
-            const canvas = document.querySelector('canvas');
-            // console.log(canvas);
-            const context = canvas.getContext('2d');
-            console.log(context);
-            setupDebugDrawer(PhysX, scene);
-
             // simulate forever!
             simulationLoop();
-
-            function setupDebugDrawer() {
-                canvas.width = canvas.clientWidth;
-                canvas.height = canvas.clientHeight;
-
-                // compute projection matrix
-                mat4.lookAt(viewMatrix, [12, 15, 20], [0, 0, 0], [0, 1, 0])
-                mat4.perspective(projectionMatrix, 45 * (Math.PI / 180), canvas.width / canvas.height, 0.01, 75);
-                mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-
-                // setup debug drawer
-                const context = canvas.getContext('2d');
-                scene.setVisualizationParameter(PhysX.eSCALE, 1);
-                scene.setVisualizationParameter(PhysX.eWORLD_AXES, 1);
-                scene.setVisualizationParameter(PhysX.eACTOR_AXES, 1);
-                scene.setVisualizationParameter(PhysX.eCOLLISION_SHAPES, 1);
-            }
 
             function simulationLoop() {
                 let lastFrame = 0;
@@ -215,64 +186,16 @@ class PhysXOverlapTest {
                     scene.fetchResults(true);
 
                     // use debug drawer interface to draw boxes on a canvas.
-                    // in a real world application you would query the box poses and update your graphics boxes accordingly
-                    debugDraw(scene);
-                    
+                    // in a real world application you would query the box poses and update your graphics boxes accordingly                    
                     var lastBoxPos = lastBox.getGlobalPose().get_p();
-                    console.log('Last box position: ' + lastBoxPos.get_x() + ", " + lastBoxPos.get_y() + ", " + lastBoxPos.get_z());
+
+                    scope.mesh.position.set(lastBoxPos.get_x(), lastBoxPos.get_y(), lastBoxPos.get_z());
+                    scope.render();
 
                     lastFrame = hrTime;
                     requestAnimationFrame(loop);
                 });
             }
-
-            function project(x, y, z) {
-                const result = vec4.transformMat4(tmpVec4, [x, y, z, 1], viewProjectionMatrix);
-                const clipX = (result[0] / result[3]);
-                const clipY = (result[1] / result[3]);
-                return [(canvas.width / 2) * (1 + clipX), (canvas.height / 2) * (1 - clipY)];
-            }
-
-            function drawLine(from, to, color) {
-                const [r, g, b] = color;
-
-                // const context = canvas.getContext('2d');
-                // console.log(canvas);
-                // console.log(context);
-
-                context.beginPath();
-                context.strokeStyle = `rgb(${255 * r}, ${255 * g}, ${255 * b})`;
-                context.moveTo(...from);
-                context.lineTo(...to);
-                context.stroke();
-            }
-
-            function debugDraw() {
-                canvas.width = canvas.width;    // clears the canvas
-
-                const rb = scene.getRenderBuffer();
-                for(let i = 0; i < rb.getNbLines(); i++) {
-                    const line = PhysX.NativeArrayHelpers.prototype.getDebugLineAt(rb.getLines(), i);
-                    const from = project(line.pos0.get_x(), line.pos0.get_y(), line.pos0.get_z());
-                    const to   = project(line.pos1.get_x(), line.pos1.get_y(), line.pos1.get_z());
-                    drawLine(from, to, colors[line.get_color0()]);
-                }
-            }
-
-            const colors = {
-                [PhysX.PxDebugColorEnum.eARGB_BLACK]:     [  0,   0,   0],
-                [PhysX.PxDebugColorEnum.eARGB_RED]:       [  1,   0,   0],
-                [PhysX.PxDebugColorEnum.eARGB_GREEN]:     [  0,   1,   0],
-                [PhysX.PxDebugColorEnum.eARGB_BLUE]:      [  0,   0,   1],
-                [PhysX.PxDebugColorEnum.eARGB_YELLOW]:    [  1,   1,   0],
-                [PhysX.PxDebugColorEnum.eARGB_MAGENTA]:   [  1,   0,   1],
-                [PhysX.PxDebugColorEnum.eARGB_CYAN]:      [  0,   1,   1],
-                [PhysX.PxDebugColorEnum.eARGB_WHITE]:     [  1,   1,   1],
-                [PhysX.PxDebugColorEnum.eARGB_GREY]:      [0.5, 0.5, 0.5],
-                [PhysX.PxDebugColorEnum.eARGB_DARKRED]:   [0.5,   0,   0],
-                [PhysX.PxDebugColorEnum.eARGB_DARKGREEN]: [  0, 0.5,   0],
-                [PhysX.PxDebugColorEnum.eARGB_DARKBLUE]:  [  0,   0, 0.5],
-            };
         });
     }
 
