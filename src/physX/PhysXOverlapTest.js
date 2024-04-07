@@ -19,6 +19,8 @@ class PhysXOverlapTest {
     
         this.scene = new THREE.Scene();
         const boxGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+
+        const groudGeometry = new THREE.BoxGeometry(20, 2, 20);
     
         this.defaultMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff,
@@ -29,6 +31,8 @@ class PhysXOverlapTest {
 
         this.mesh = new THREE.Mesh(boxGeometry, this.defaultMaterial);
         this.mesh.position.set(0, 10, 0);
+
+        this.groudMesh = new THREE.Mesh(groudGeometry, this.defaultMaterial);
 
         // Light source
         const directionalLight = new THREE.DirectionalLight(0xffffffff, 3.0);
@@ -41,6 +45,7 @@ class PhysXOverlapTest {
 
         this.scene.add(axesHelper);
         this.scene.add(this.mesh);
+        this.scene.add(this.groudMesh);
         this.scene.add(ambientLight);
         this.scene.add(directionalLight);
         this.scene.add(directionalLightHelper);
