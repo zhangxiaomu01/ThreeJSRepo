@@ -7,4 +7,6 @@ function render() {
     requestAnimationFrame(render);
 }
 
-render();
+// render();
+
+physXOverlapTest.testPhysX();
