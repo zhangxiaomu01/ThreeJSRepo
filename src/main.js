@@ -1,9 +1,9 @@
-import { IntersectionTest } from './algorithm/geometry/IntersectionTest.js';
+import { PhysXOverlapTest } from './physX/PhysXOverlapTest.js';
 
-const intersectionTest = new IntersectionTest();
+const physXOverlapTest = new PhysXOverlapTest();
 
 function render() {
-    intersectionTest.render();
+    physXOverlapTest.render();
     requestAnimationFrame(render);
 }
 
