@@ -1,5 +1,5 @@
 
-import { THREE, OrbitControls, GUI, FullScreenQuad } from '../CommonImports.js'
+import { THREE, OrbitControls, GUI, OBJLoader, FullScreenQuad } from '../CommonImports.js'
 // Stat.js
 import Stats from '../../threejs_r155/examples/jsm/libs/stats.module.js';
 
@@ -20,7 +20,9 @@ class PhysXOverlapTest {
         this.scene = new THREE.Scene();
         const boxGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 
-        const groudGeometry = new THREE.BoxGeometry(20, 2, 20);
+        const groudGeometry = new THREE.BoxGeometry(20, 1, 20);
+
+        this.objLoader = new OBJLoader();
     
         this.defaultMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff,
@@ -43,9 +45,16 @@ class PhysXOverlapTest {
 
         const axesHelper = new THREE.AxesHelper(150);
 
+        this.modelGroup = new THREE.Group();
+        const path1 = "./resources/GenoPrototype/BaseCupsMesh.obj";
+        const path2 = "./resources/GenoPrototype/GenoSphereTopMesh.obj";
+        this.loadObj(path1, this.defaultMaterial);
+        this.loadObj(path2, this.defaultMaterial);
+
         this.scene.add(axesHelper);
-        this.scene.add(this.mesh);
-        this.scene.add(this.groudMesh);
+        // this.scene.add(this.mesh);
+        // this.scene.add(this.groudMesh);
+        this.scene.add(this.modelGroup);
         this.scene.add(ambientLight);
         this.scene.add(directionalLight);
         this.scene.add(directionalLightHelper);
@@ -104,6 +113,30 @@ class PhysXOverlapTest {
         BackgroundManager.AddSixFaceEnvMap(this.scene);
     }
 
+    loadObj(path, material, newPosition = new THREE.Vector3(0, 0, 0)) {
+        var scope = this;
+        this.objLoader.load(
+            // resource URL
+            path,
+            // called when resource is loaded
+            function ( object ) {
+                if (object.children[0]) {
+                    object.children[0].material = material;
+                    object.children[0].position.set(newPosition.x, newPosition.y, newPosition.z);
+                }
+                scope.modelGroup.add(object.children[0]);
+            },
+            // called when loading is in progresses
+            function ( xhr ) {
+            },
+            // called when loading has errors
+            function ( error ) {
+                console.log( 'An error happened' );
+                console.log(error);
+            }
+        );
+    }
+
     getRenderer() {
         return this.renderer;
     }
@@ -117,6 +150,7 @@ class PhysXOverlapTest {
     testPhysX() {
         let scope = this;
         PhysX().then(function(PhysX) {
+            console.log(PhysX);
             var version = PhysX.PHYSICS_VERSION;
             console.log('PhysX loaded! Version: ' + ((version >> 24) & 0xff) + '.' + ((version >> 16) & 0xff) + '.' + ((version >> 8) & 0xff));
 
@@ -168,6 +202,21 @@ class PhysXOverlapTest {
                 scene.addActor(box);
                 lastBox = box;
             }
+
+            tmpVec.set_x(0); tmpVec.set_y(1.001); tmpVec.set_z(0);
+            tmpPose.set_p(tmpVec);
+
+            var tmpPose1 = new PhysX.PxTransform(PhysX.PxIDENTITYEnum.PxIdentity);
+            var boxGeometry1 = new PhysX.PxBoxGeometry(0.5, 0.5, 0.5); 
+
+            // let query = new PhysX.PxGeometryQuery();
+            // console.log(PhysX.PxGeometryQuery.prototype.overlap);
+            let isOverlapping = PhysX.PxGeometryQuery.prototype.overlap(boxGeometry,
+            tmpPose, 
+            boxGeometry,
+            tmpPose1);
+
+            console.log("The two boxes are overlapping: " + isOverlapping);
 
             // clean up temp objects
             PhysX.destroy(groundGeometry);
