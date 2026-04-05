@@ -6,10 +6,12 @@
 // 导入 Three.js 核心库和 OrbitControls
 import * as THREE from '../threejs_r155/build/three.module.js';
 import { OrbitControls } from '../threejs_r155/examples/jsm/controls/OrbitControls.js';
+import ClipManager from './ClipManager.js';
 
 // 全局变量
 let scene, camera, renderer, controls;
 let objects = [];
+let clipManager = null;
 
 /**
  * 初始化场景
@@ -192,6 +194,160 @@ function createGeometries() {
 }
 
 /**
+ * 检查平面是否与物体相交
+ * @param {THREE.Plane} plane - 平面
+ * @param {THREE.Object3D} object - 物体
+ * @returns {boolean} - 是否相交
+ */
+function checkPlaneObjectIntersection(plane, object) {
+    if (!object.geometry || !object.geometry.boundingBox) {
+        object.geometry.computeBoundingBox();
+    }
+    
+    const boundingBox = object.geometry.boundingBox.clone();
+    boundingBox.translate(object.position);
+    
+    const min = boundingBox.min;
+    const max = boundingBox.max;
+    
+    const corners = [
+        new THREE.Vector3(min.x, min.y, min.z),
+        new THREE.Vector3(min.x, min.y, max.z),
+        new THREE.Vector3(min.x, max.y, min.z),
+        new THREE.Vector3(min.x, max.y, max.z),
+        new THREE.Vector3(max.x, min.y, min.z),
+        new THREE.Vector3(max.x, min.y, max.z),
+        new THREE.Vector3(max.x, max.y, min.z),
+        new THREE.Vector3(max.x, max.y, max.z)
+    ];
+    
+    let hasPositive = false;
+    let hasNegative = false;
+    
+    for (const corner of corners) {
+        const distance = plane.distanceToPoint(corner);
+        if (distance > 0.01) hasPositive = true;
+        if (distance < -0.01) hasNegative = true;
+        
+        if (hasPositive && hasNegative) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * 初始化随机剖面
+ * 创建3个随机剖面，确保每个剖面至少剖切1个物体
+ */
+function initRandomClips() {
+    try {
+        if (!renderer || !scene) {
+            throw new Error('渲染器或场景未初始化');
+        }
+        
+        if (objects.length === 0) {
+            throw new Error('场景中没有物体可供剖切');
+        }
+        
+        clipManager = new ClipManager(renderer, scene);
+        console.log('ClipManager 已创建');
+        
+        const usedObjects = new Set();
+        const axes = ['x', 'y', 'z'];
+        
+        for (let i = 0; i < 3; i++) {
+            let planeCreated = false;
+            let attempts = 0;
+            const maxAttempts = 50;
+            
+            while (!planeCreated && attempts < maxAttempts) {
+                const axisIndex = Math.floor(Math.random() * 3);
+                const axis = axes[axisIndex];
+                
+                let normal, position;
+                
+                const targetObjects = objects.filter(obj => !usedObjects.has(obj));
+                const objectsToCheck = targetObjects.length > 0 ? targetObjects : objects;
+                
+                const targetObject = objectsToCheck[Math.floor(Math.random() * objectsToCheck.length)];
+                
+                const objPos = targetObject.position;
+                const objSize = targetObject.userData.size || 1;
+                
+                const offset = (Math.random() - 0.5) * objSize * 0.8;
+                
+                switch (axis) {
+                    case 'x':
+                        normal = new THREE.Vector3(1, 0, 0);
+                        position = new THREE.Vector3(objPos.x + offset, objPos.y, objPos.z);
+                        break;
+                    case 'y':
+                        normal = new THREE.Vector3(0, 1, 0);
+                        position = new THREE.Vector3(objPos.x, objPos.y + offset, objPos.z);
+                        break;
+                    case 'z':
+                        normal = new THREE.Vector3(0, 0, 1);
+                        position = new THREE.Vector3(objPos.x, objPos.y, objPos.z + offset);
+                        break;
+                }
+                
+                if (Math.random() > 0.5) {
+                    normal.negate();
+                }
+                
+                const testPlane = new THREE.Plane();
+                testPlane.setFromNormalAndCoplanarPoint(normal, position);
+                
+                const intersectingObjects = objects.filter(obj => 
+                    checkPlaneObjectIntersection(testPlane, obj)
+                );
+                
+                if (intersectingObjects.length > 0) {
+                    try {
+                        const planeId = clipManager.addPlane(normal, position);
+                        
+                        usedObjects.add(targetObject);
+                        
+                        console.log(`剖面 ${i + 1} 创建成功:`);
+                        console.log(`  - 方向: ${axis.toUpperCase()}轴`);
+                        console.log(`  - 位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+                        console.log(`  - 剖切物体数: ${intersectingObjects.length}`);
+                        console.log(`  - 剖面ID: ${planeId}`);
+                        
+                        planeCreated = true;
+                    } catch (error) {
+                        console.warn(`创建剖面 ${i + 1} 失败:`, error.message);
+                        attempts++;
+                    }
+                } else {
+                    attempts++;
+                }
+            }
+            
+            if (!planeCreated) {
+                console.warn(`剖面 ${i + 1} 在 ${maxAttempts} 次尝试后未能创建`);
+            }
+        }
+        
+        const summary = clipManager.getSummary();
+        console.log(`剖面初始化完成，共创建 ${summary.planeCount} 个剖面`);
+        
+        if (summary.planeCount < 3) {
+            console.warn(`警告: 仅成功创建 ${summary.planeCount}/3 个剖面`);
+        }
+        
+        return clipManager;
+        
+    } catch (error) {
+        console.error('初始化随机剖面失败:', error.message);
+        console.error(error.stack);
+        return null;
+    }
+}
+
+/**
  * 创建地面
  */
 function createGround() {
@@ -250,6 +406,8 @@ function main() {
     initLights();
     createGround();
     createGeometries();
+    
+    initRandomClips();
     
     window.addEventListener('resize', onWindowResize);
     
