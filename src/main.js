@@ -7,11 +7,13 @@
 import * as THREE from '../threejs_r155/build/three.module.js';
 import { OrbitControls } from '../threejs_r155/examples/jsm/controls/OrbitControls.js';
 import ClipManager from './ClipManager.js';
+import { ClippingPhongMaterial } from './ClippingPhongMaterial.js';
 
 // 全局变量
 let scene, camera, renderer, controls;
 let objects = [];
 let clipManager = null;
+let sharedMaterial = null;
 
 /**
  * 初始化场景
@@ -150,18 +152,22 @@ function getRandomPosition(size) {
 /**
  * 创建几何体
  * 2个球体 + 3个立方体，随机分布且互不重叠
+ * 使用共享的 ClippingPhongMaterial
  */
 function createGeometries() {
-    const material = new THREE.MeshPhongMaterial({
+    sharedMaterial = new ClippingPhongMaterial({
         color: 0x808080,
         shininess: 60,
-        specular: 0x444444
+        specular: 0x444444,
+        transparent: false
     });
+    
+    console.log('共享 ClippingPhongMaterial 已创建');
 
     for (let i = 0; i < 2; i++) {
         const radius = 1.2 + Math.random() * 0.5;
         const geometry = new THREE.SphereGeometry(radius, 32, 32);
-        const sphere = new THREE.Mesh(geometry, material);
+        const sphere = new THREE.Mesh(geometry, sharedMaterial);
         
         const position = getRandomPosition(radius);
         sphere.position.copy(position);
@@ -169,15 +175,18 @@ function createGeometries() {
         sphere.receiveShadow = true;
         sphere.userData.size = radius;
         sphere.userData.type = 'sphere';
+        sphere.userData.objectIndex = objects.length;
         
         objects.push(sphere);
         scene.add(sphere);
+        
+        console.log(`物体${objects.length} (球体) 创建于位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
     }
 
     for (let i = 0; i < 3; i++) {
         const size = 1.5 + Math.random() * 0.5;
         const geometry = new THREE.BoxGeometry(size, size, size);
-        const cube = new THREE.Mesh(geometry, material);
+        const cube = new THREE.Mesh(geometry, sharedMaterial);
         
         const halfSize = size / 2;
         const position = getRandomPosition(halfSize);
@@ -187,10 +196,15 @@ function createGeometries() {
         cube.receiveShadow = true;
         cube.userData.size = halfSize * 1.2;
         cube.userData.type = 'cube';
+        cube.userData.objectIndex = objects.length;
         
         objects.push(cube);
         scene.add(cube);
+        
+        console.log(`物体${objects.length} (立方体) 创建于位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
     }
+    
+    console.log(`场景中共有 ${objects.length} 个物体，全部使用共享材质`);
 }
 
 /**
@@ -239,7 +253,10 @@ function checkPlaneObjectIntersection(plane, object) {
 
 /**
  * 初始化随机剖面
- * 创建3个随机剖面，确保每个剖面至少剖切1个物体
+ * 创建3个剖面，按照要求精确控制影响范围：
+ * - Plane0：仅对物体1产生影响
+ * - Plane1：同时对物体2和物体3产生影响
+ * - Plane2：对所有物体产生影响
  */
 function initRandomClips() {
     try {
@@ -254,85 +271,112 @@ function initRandomClips() {
         clipManager = new ClipManager(renderer, scene);
         console.log('ClipManager 已创建');
         
-        const usedObjects = new Set();
-        const axes = ['x', 'y', 'z'];
-        
-        for (let i = 0; i < 3; i++) {
-            let planeCreated = false;
-            let attempts = 0;
-            const maxAttempts = 50;
-            
-            while (!planeCreated && attempts < maxAttempts) {
-                const axisIndex = Math.floor(Math.random() * 3);
-                const axis = axes[axisIndex];
-                
-                let normal, position;
-                
-                const targetObjects = objects.filter(obj => !usedObjects.has(obj));
-                const objectsToCheck = targetObjects.length > 0 ? targetObjects : objects;
-                
-                const targetObject = objectsToCheck[Math.floor(Math.random() * objectsToCheck.length)];
-                
-                const objPos = targetObject.position;
-                const objSize = targetObject.userData.size || 1;
-                
-                const offset = (Math.random() - 0.5) * objSize * 0.8;
-                
-                switch (axis) {
-                    case 'x':
-                        normal = new THREE.Vector3(1, 0, 0);
-                        position = new THREE.Vector3(objPos.x + offset, objPos.y, objPos.z);
-                        break;
-                    case 'y':
-                        normal = new THREE.Vector3(0, 1, 0);
-                        position = new THREE.Vector3(objPos.x, objPos.y + offset, objPos.z);
-                        break;
-                    case 'z':
-                        normal = new THREE.Vector3(0, 0, 1);
-                        position = new THREE.Vector3(objPos.x, objPos.y, objPos.z + offset);
-                        break;
-                }
-                
-                if (Math.random() > 0.5) {
-                    normal.negate();
-                }
-                
-                const testPlane = new THREE.Plane();
-                testPlane.setFromNormalAndCoplanarPoint(normal, position);
-                
-                const intersectingObjects = objects.filter(obj => 
-                    checkPlaneObjectIntersection(testPlane, obj)
-                );
-                
-                if (intersectingObjects.length > 0) {
-                    try {
-                        const planeId = clipManager.addPlane(normal, position);
-                        
-                        usedObjects.add(targetObject);
-                        
-                        console.log(`剖面 ${i + 1} 创建成功:`);
-                        console.log(`  - 方向: ${axis.toUpperCase()}轴`);
-                        console.log(`  - 位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
-                        console.log(`  - 剖切物体数: ${intersectingObjects.length}`);
-                        console.log(`  - 剖面ID: ${planeId}`);
-                        
-                        planeCreated = true;
-                    } catch (error) {
-                        console.warn(`创建剖面 ${i + 1} 失败:`, error.message);
-                        attempts++;
-                    }
-                } else {
-                    attempts++;
-                }
-            }
-            
-            if (!planeCreated) {
-                console.warn(`剖面 ${i + 1} 在 ${maxAttempts} 次尝试后未能创建`);
-            }
+        if (!sharedMaterial) {
+            throw new Error('共享材质未创建');
         }
         
+        const allPlanes = clipManager.getAllPlanes();
+        sharedMaterial.setClipPlanes(allPlanes);
+        sharedMaterial.setClipEnabled(true);
+        
+        console.log('共享材质已设置全局剖面');
+        
+        const planeConfigs = [
+            {
+                name: 'Plane0',
+                targetObjects: [0],
+                description: '仅影响物体1'
+            },
+            {
+                name: 'Plane1',
+                targetObjects: [1, 2],
+                description: '影响物体2和物体3'
+            },
+            {
+                name: 'Plane2',
+                targetObjects: [0, 1, 2, 3, 4],
+                description: '影响所有物体'
+            }
+        ];
+        
+        const planeIds = [];
+        
+        for (let i = 0; i < planeConfigs.length; i++) {
+            const config = planeConfigs[i];
+            const targetObjects = config.targetObjects
+                .map(idx => objects[idx])
+                .filter(obj => obj !== undefined);
+            
+            if (targetObjects.length === 0) {
+                console.warn(`${config.name}: 没有找到目标物体，跳过`);
+                continue;
+            }
+            
+            const primaryObject = targetObjects[0];
+            const objPos = primaryObject.position;
+            const objSize = primaryObject.userData.size || 1;
+            
+            const axes = ['x', 'y', 'z'];
+            const axis = axes[i % 3];
+            
+            let normal, position;
+            const offset = (Math.random() - 0.5) * objSize * 0.6;
+            
+            switch (axis) {
+                case 'x':
+                    normal = new THREE.Vector3(1, 0, 0);
+                    position = new THREE.Vector3(objPos.x + offset, objPos.y, objPos.z);
+                    break;
+                case 'y':
+                    normal = new THREE.Vector3(0, 1, 0);
+                    position = new THREE.Vector3(objPos.x, objPos.y + offset, objPos.z);
+                    break;
+                case 'z':
+                    normal = new THREE.Vector3(0, 0, 1);
+                    position = new THREE.Vector3(objPos.x, objPos.y, objPos.z + offset);
+                    break;
+            }
+            
+            if (Math.random() > 0.5) {
+                normal.negate();
+            }
+            
+            const planeId = clipManager.addPlane(normal, position);
+            planeIds.push(planeId);
+            
+            console.log(`${config.name} 创建成功:`);
+            console.log(`  - 目标: ${config.description}`);
+            console.log(`  - 方向: ${axis.toUpperCase()}轴`);
+            console.log(`  - 位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+            console.log(`  - 剖面ID: ${planeId}`);
+        }
+        
+        const updatedPlanes = clipManager.getAllPlanes();
+        sharedMaterial.setClipPlanes(updatedPlanes);
+        
+        objects.forEach((obj, objIndex) => {
+            const clipIndices = [];
+            
+            planeConfigs.forEach((config, planeIndex) => {
+                if (config.targetObjects.includes(objIndex)) {
+                    clipIndices.push(planeIndex);
+                }
+            });
+            
+            if (clipIndices.length > 0 && obj.material === sharedMaterial) {
+                sharedMaterial.setObjectClipIndices(clipIndices);
+                console.log(`物体${objIndex + 1} 受影响的剖面索引: [${clipIndices.join(', ')}]`);
+            }
+        });
+        
         const summary = clipManager.getSummary();
-        console.log(`剖面初始化完成，共创建 ${summary.planeCount} 个剖面`);
+        console.log(`\n=== 剖面初始化完成 ===`);
+        console.log(`共创建 ${summary.planeCount} 个剖面`);
+        console.log(`\n=== 物体-剖面映射关系 ===`);
+        planeConfigs.forEach((config, idx) => {
+            const affectedObjects = config.targetObjects.map(i => `物体${i+1}`).join(', ');
+            console.log(`${config.name}: ${affectedObjects}`);
+        });
         
         if (summary.planeCount < 3) {
             console.warn(`警告: 仅成功创建 ${summary.planeCount}/3 个剖面`);

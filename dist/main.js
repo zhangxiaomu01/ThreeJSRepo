@@ -365,6 +365,407 @@ class ClipManager {
 
 /***/ }),
 
+/***/ "./src/ClippingPhongMaterial.js":
+/*!**************************************!*\
+  !*** ./src/ClippingPhongMaterial.js ***!
+  \**************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   ClippingPhongMaterial: () => (/* binding */ ClippingPhongMaterial),
+/* harmony export */   MAX_CLIP_PLANES: () => (/* binding */ MAX_CLIP_PLANES),
+/* harmony export */   MAX_CLIP_PLANES_PER_OBJECT: () => (/* binding */ MAX_CLIP_PLANES_PER_OBJECT),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../threejs_r155/build/three.module.js */ "./threejs_r155/build/three.module.js");
+/**
+ * 自定义剖切 Phong 材质
+ * 基于 THREE.MeshPhongMaterial 扩展，支持物体与剖面的关联映射
+ */
+
+
+
+const vertexShader = `
+    varying vec3 vViewPosition;
+    varying vec3 vNormal;
+    
+    #include <common>
+    #include <uv_pars_vertex>
+    #include <displacementmap_pars_vertex>
+    #include <envmap_pars_vertex>
+    #include <color_pars_vertex>
+    #include <morphtarget_pars_vertex>
+    #include <skinning_pars_vertex>
+    #include <shadowmap_pars_vertex>
+    #include <logdepthbuf_pars_vertex>
+    
+    void main() {
+        #include <uv_vertex>
+        #include <color_vertex>
+        #include <morphcolor_vertex>
+        
+        #include <beginnormal_vertex>
+        #include <morphnormal_vertex>
+        #include <skinbase_vertex>
+        #include <skinnormal_vertex>
+        #include <defaultnormal_vertex>
+        
+        vNormal = normalize(transformedNormal);
+        
+        #include <begin_vertex>
+        #include <morphtarget_vertex>
+        #include <skinning_vertex>
+        #include <displacementmap_vertex>
+        #include <project_vertex>
+        #include <logdepthbuf_vertex>
+        
+        vViewPosition = -mvPosition.xyz;
+        
+        #include <worldpos_vertex>
+        #include <envmap_vertex>
+        #include <shadowmap_vertex>
+    }
+`;
+
+const fragmentShader = `
+    uniform vec3 diffuse;
+    uniform vec3 emissive;
+    uniform vec3 specular;
+    uniform float shininess;
+    uniform float opacity;
+    
+    uniform vec3 clipPlaneNormals[MAX_CLIP_PLANES];
+    uniform float clipPlaneConstants[MAX_CLIP_PLANES];
+    uniform int numClipPlanes;
+    uniform int objectClipIndices[MAX_CLIP_PLANES_PER_OBJECT];
+    uniform int numObjectClipPlanes;
+    uniform bool clipEnabled;
+    
+    varying vec3 vViewPosition;
+    varying vec3 vNormal;
+    
+    #include <common>
+    #include <packing>
+    #include <dithering_pars_fragment>
+    #include <color_pars_fragment>
+    #include <uv_pars_fragment>
+    #include <uv2_pars_fragment>
+    #include <map_pars_fragment>
+    #include <alphamap_pars_fragment>
+    #include <alphatest_pars_fragment>
+    #include <aomap_pars_fragment>
+    #include <lightmap_pars_fragment>
+    #include <emissivemap_pars_fragment>
+    #include <envmap_common_pars_fragment>
+    #include <envmap_pars_fragment>
+    #include <cube_uv_reflection_fragment>
+    #include <fog_pars_fragment>
+    #include <bsdfs>
+    #include <lights_pars_begin>
+    #include <lights_phong_pars_fragment>
+    #include <shadowmap_pars_fragment>
+    #include <bumpmap_pars_fragment>
+    #include <normalmap_pars_fragment>
+    #include <specularmap_pars_fragment>
+    #include <logdepthbuf_pars_fragment>
+    
+    bool isClipped(vec3 worldPosition) {
+        if (!clipEnabled) return false;
+        
+        for (int i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
+            if (i >= numObjectClipPlanes) break;
+            
+            int planeIndex = objectClipIndices[i];
+            if (planeIndex < 0 || planeIndex >= numClipPlanes) continue;
+            
+            vec3 normal = clipPlaneNormals[planeIndex];
+            float constant = clipPlaneConstants[planeIndex];
+            
+            float distance = dot(worldPosition, normal) + constant;
+            if (distance < 0.0) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    void main() {
+        #include <clipping_planes_fragment>
+        
+        if (isClipped(vWorldPosition)) {
+            discard;
+        }
+        
+        #include <logdepthbuf_fragment>
+        
+        vec4 diffuseColor = vec4(diffuse, opacity);
+        ReflectedLight reflectedLight = ReflectedLight(vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0));
+        vec3 totalEmissiveRadiance = emissive;
+        
+        #include <map_fragment>
+        #include <color_fragment>
+        #include <alphamap_fragment>
+        #include <alphatest_fragment>
+        #include <specularmap_fragment>
+        #include <normal_fragment_begin>
+        #include <normal_fragment_maps>
+        #include <emissivemap_fragment>
+        
+        #include <lights_phong_fragment>
+        #include <lights_fragment_begin>
+        #include <lights_fragment_maps>
+        #include <lights_fragment_end>
+        
+        vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;
+        
+        #include <envmap_fragment>
+        
+        gl_FragColor = vec4(outgoingLight, diffuseColor.a);
+        
+        #include <tonemapping_fragment>
+        #include <encodings_fragment>
+        #include <fog_fragment>
+        #include <premultiplied_alpha_fragment>
+        #include <dithering_fragment>
+    }
+`;
+
+const MAX_CLIP_PLANES = 16;
+const MAX_CLIP_PLANES_PER_OBJECT = 6;
+
+class ClippingPhongMaterial extends _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.ShaderMaterial {
+    constructor(parameters = {}) {
+        const clipPlaneNormals = [];
+        const clipPlaneConstants = [];
+        for (let i = 0; i < MAX_CLIP_PLANES; i++) {
+            clipPlaneNormals.push(new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, 0, 0));
+            clipPlaneConstants.push(0);
+        }
+        
+        const objectClipIndices = [];
+        for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
+            objectClipIndices.push(-1);
+        }
+        
+        const uniforms = _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsUtils.merge([
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.common,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.specularmap,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.envmap,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.aomap,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.lightmap,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.emissivemap,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.bumpmap,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.normalmap,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.displacementmap,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.fog,
+            _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsLib.lights,
+            {
+                diffuse: { value: new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.Color(0x808080) },
+                emissive: { value: new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.Color(0x000000) },
+                specular: { value: new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.Color(0x111111) },
+                shininess: { value: 30 },
+                opacity: { value: 1.0 },
+                clipPlaneNormals: { value: clipPlaneNormals },
+                clipPlaneConstants: { value: clipPlaneConstants },
+                numClipPlanes: { value: 0 },
+                objectClipIndices: { value: objectClipIndices },
+                numObjectClipPlanes: { value: 0 },
+                clipEnabled: { value: true }
+            }
+        ]);
+        
+        const defines = {
+            'MAX_CLIP_PLANES': MAX_CLIP_PLANES,
+            'MAX_CLIP_PLANES_PER_OBJECT': MAX_CLIP_PLANES_PER_OBJECT
+        };
+        
+        if (parameters.map) defines['USE_MAP'] = '';
+        if (parameters.normalMap) defines['USE_NORMALMAP'] = '';
+        if (parameters.specularMap) defines['USE_SPECULARMAP'] = '';
+        if (parameters.emissiveMap) defines['USE_EMISSIVEMAP'] = '';
+        if (parameters.envMap) defines['USE_ENVMAP'] = '';
+        if (parameters.aoMap) defines['USE_AOMAP'] = '';
+        if (parameters.lightMap) defines['USE_LIGHTMAP'] = '';
+        if (parameters.bumpMap) defines['USE_BUMPMAP'] = '';
+        
+        super({
+            uniforms: uniforms,
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            defines: defines,
+            lights: true,
+            fog: true,
+            side: _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.DoubleSide,
+            transparent: parameters.transparent || false
+        });
+        
+        this.isClippingPhongMaterial = true;
+        
+        this.setValues(parameters);
+    }
+    
+    setClipPlanes(planes) {
+        if (!Array.isArray(planes)) {
+            console.warn('ClippingPhongMaterial.setClipPlanes: planes 必须是数组');
+            return;
+        }
+        
+        const numPlanes = Math.min(planes.length, MAX_CLIP_PLANES);
+        this.uniforms.numClipPlanes.value = numPlanes;
+        
+        for (let i = 0; i < numPlanes; i++) {
+            const plane = planes[i];
+            this.uniforms.clipPlaneNormals.value[i].copy(plane.normal);
+            this.uniforms.clipPlaneConstants.value[i] = plane.constant;
+        }
+        
+        this.needsUpdate = true;
+    }
+    
+    setObjectClipIndices(indices) {
+        if (!Array.isArray(indices)) {
+            console.warn('ClippingPhongMaterial.setObjectClipIndices: indices 必须是数组');
+            return;
+        }
+        
+        const numIndices = Math.min(indices.length, MAX_CLIP_PLANES_PER_OBJECT);
+        this.uniforms.numObjectClipPlanes.value = numIndices;
+        
+        for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
+            if (i < numIndices) {
+                this.uniforms.objectClipIndices.value[i] = indices[i];
+            } else {
+                this.uniforms.objectClipIndices.value[i] = -1;
+            }
+        }
+        
+        this.needsUpdate = true;
+    }
+    
+    setClipEnabled(enabled) {
+        this.uniforms.clipEnabled.value = enabled;
+        this.needsUpdate = true;
+    }
+    
+    setPhongProperties(options = {}) {
+        if (options.color) {
+            this.uniforms.diffuse.value.set(options.color);
+        }
+        if (options.emissive) {
+            this.uniforms.emissive.value.set(options.emissive);
+        }
+        if (options.specular !== undefined) {
+            this.uniforms.specular.value.set(options.specular);
+        }
+        if (options.shininess !== undefined) {
+            this.uniforms.shininess.value = options.shininess;
+        }
+        if (options.opacity !== undefined) {
+            this.uniforms.opacity.value = options.opacity;
+        }
+        
+        this.needsUpdate = true;
+    }
+    
+    getPhongProperties() {
+        return {
+            color: this.uniforms.diffuse.value.getHex(),
+            emissive: this.uniforms.emissive.value.getHex(),
+            specular: this.uniforms.specular.value.getHex(),
+            shininess: this.uniforms.shininess.value,
+            opacity: this.uniforms.opacity.value
+        };
+    }
+    
+    updateFromMeshPhongMaterial(material) {
+        if (!(material instanceof _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.MeshPhongMaterial)) {
+            console.warn('ClippingPhongMaterial.updateFromMeshPhongMaterial: 参数必须是 MeshPhongMaterial');
+            return;
+        }
+        
+        this.uniforms.diffuse.value.copy(material.color);
+        this.uniforms.emissive.value.copy(material.emissive);
+        this.uniforms.specular.value.copy(material.specular);
+        this.uniforms.shininess.value = material.shininess;
+        this.uniforms.opacity.value = material.opacity;
+        
+        if (material.map) {
+            this.uniforms.map.value = material.map;
+            this.defines['USE_MAP'] = '';
+        }
+        if (material.normalMap) {
+            this.uniforms.normalMap.value = material.normalMap;
+            this.uniforms.normalScale.value.copy(material.normalScale);
+            this.defines['USE_NORMALMAP'] = '';
+        }
+        if (material.specularMap) {
+            this.uniforms.specularMap.value = material.specularMap;
+            this.defines['USE_SPECULARMAP'] = '';
+        }
+        if (material.emissiveMap) {
+            this.uniforms.emissiveMap.value = material.emissiveMap;
+            this.defines['USE_EMISSIVEMAP'] = '';
+        }
+        if (material.envMap) {
+            this.uniforms.envMap.value = material.envMap;
+            this.defines['USE_ENVMAP'] = '';
+        }
+        if (material.aoMap) {
+            this.uniforms.aoMap.value = material.aoMap;
+            this.uniforms.aoMapIntensity.value = material.aoMapIntensity;
+            this.defines['USE_AOMAP'] = '';
+        }
+        if (material.bumpMap) {
+            this.uniforms.bumpMap.value = material.bumpMap;
+            this.uniforms.bumpScale.value = material.bumpScale;
+            this.defines['USE_BUMPMAP'] = '';
+        }
+        
+        this.transparent = material.transparent;
+        this.side = material.side;
+        this.opacity = material.opacity;
+        
+        this.needsUpdate = true;
+    }
+    
+    clone() {
+        const clonedMaterial = new ClippingPhongMaterial();
+        
+        clonedMaterial.uniforms.diffuse.value.copy(this.uniforms.diffuse.value);
+        clonedMaterial.uniforms.emissive.value.copy(this.uniforms.emissive.value);
+        clonedMaterial.uniforms.specular.value.copy(this.uniforms.specular.value);
+        clonedMaterial.uniforms.shininess.value = this.uniforms.shininess.value;
+        clonedMaterial.uniforms.opacity.value = this.uniforms.opacity.value;
+        clonedMaterial.uniforms.numClipPlanes.value = this.uniforms.numClipPlanes.value;
+        clonedMaterial.uniforms.numObjectClipPlanes.value = this.uniforms.numObjectClipPlanes.value;
+        clonedMaterial.uniforms.clipEnabled.value = this.uniforms.clipEnabled.value;
+        
+        for (let i = 0; i < this.uniforms.numClipPlanes.value; i++) {
+            clonedMaterial.uniforms.clipPlaneNormals.value[i].copy(this.uniforms.clipPlaneNormals.value[i]);
+            clonedMaterial.uniforms.clipPlaneConstants.value[i] = this.uniforms.clipPlaneConstants.value[i];
+        }
+        
+        for (let i = 0; i < this.uniforms.numObjectClipPlanes.value; i++) {
+            clonedMaterial.uniforms.objectClipIndices.value[i] = this.uniforms.objectClipIndices.value[i];
+        }
+        
+        clonedMaterial.defines = { ...this.defines };
+        clonedMaterial.transparent = this.transparent;
+        clonedMaterial.side = this.side;
+        clonedMaterial.needsUpdate = true;
+        
+        return clonedMaterial;
+    }
+}
+
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (ClippingPhongMaterial);
+
+
+/***/ }),
+
 /***/ "./threejs_r155/build/three.module.js":
 /*!********************************************!*\
   !*** ./threejs_r155/build/three.module.js ***!
@@ -53701,9 +54102,10 @@ var __webpack_exports__ = {};
   !*** ./src/main.js ***!
   \*********************/
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../threejs_r155/build/three.module.js */ "./threejs_r155/build/three.module.js");
-/* harmony import */ var _threejs_r155_examples_jsm_controls_OrbitControls_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../threejs_r155/examples/jsm/controls/OrbitControls.js */ "./threejs_r155/examples/jsm/controls/OrbitControls.js");
+/* harmony import */ var _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../threejs_r155/build/three.module.js */ "./threejs_r155/build/three.module.js");
+/* harmony import */ var _threejs_r155_examples_jsm_controls_OrbitControls_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../threejs_r155/examples/jsm/controls/OrbitControls.js */ "./threejs_r155/examples/jsm/controls/OrbitControls.js");
 /* harmony import */ var _ClipManager_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ClipManager.js */ "./src/ClipManager.js");
+/* harmony import */ var _ClippingPhongMaterial_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ClippingPhongMaterial.js */ "./src/ClippingPhongMaterial.js");
 /**
  * Three.js r155 完整示例
  * 包含：2个球体、3个立方体，三点布光系统，以及完整的相机控制
@@ -53714,17 +54116,19 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
 // 全局变量
 let scene, camera, renderer, controls;
 let objects = [];
 let clipManager = null;
+let sharedMaterial = null;
 
 /**
  * 初始化场景
  */
 function initScene() {
-    scene = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Scene();
-    scene.background = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Color(0x1a1a2e);
+    scene = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Scene();
+    scene.background = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Color(0x1a1a2e);
 }
 
 /**
@@ -53732,7 +54136,7 @@ function initScene() {
  */
 function initCamera() {
     const aspect = window.innerWidth / window.innerHeight;
-    camera = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.PerspectiveCamera(60, aspect, 0.1, 1000);
+    camera = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.PerspectiveCamera(60, aspect, 0.1, 1000);
     camera.position.set(15, 12, 15);
     camera.lookAt(0, 0, 0);
 }
@@ -53741,14 +54145,14 @@ function initCamera() {
  * 初始化渲染器
  */
 function initRenderer() {
-    renderer = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.WebGLRenderer({ 
+    renderer = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.WebGLRenderer({ 
         antialias: true,
         alpha: true 
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.PCFSoftShadowMap;
+    renderer.shadowMap.type = _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.PCFSoftShadowMap;
     
     document.body.appendChild(renderer.domElement);
 }
@@ -53760,7 +54164,7 @@ function initRenderer() {
  * - 鼠标滚轮：缩放场景
  */
 function initControls() {
-    controls = new _threejs_r155_examples_jsm_controls_OrbitControls_js__WEBPACK_IMPORTED_MODULE_2__.OrbitControls(camera, renderer.domElement);
+    controls = new _threejs_r155_examples_jsm_controls_OrbitControls_js__WEBPACK_IMPORTED_MODULE_3__.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
@@ -53776,10 +54180,10 @@ function initControls() {
  * - 轮廓光(Back Light)：分离物体与背景
  */
 function initLights() {
-    const ambientLight = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.AmbientLight(0x404040, 0.4);
+    const ambientLight = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.AmbientLight(0x404040, 0.4);
     scene.add(ambientLight);
 
-    const keyLight = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.DirectionalLight(0xffffff, 1.2);
+    const keyLight = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.DirectionalLight(0xffffff, 1.2);
     keyLight.position.set(10, 15, 10);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -53792,11 +54196,11 @@ function initLights() {
     keyLight.shadow.camera.bottom = -20;
     scene.add(keyLight);
 
-    const fillLight = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.DirectionalLight(0x8899aa, 0.6);
+    const fillLight = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.DirectionalLight(0x8899aa, 0.6);
     fillLight.position.set(-8, 8, -5);
     scene.add(fillLight);
 
-    const backLight = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.DirectionalLight(0xffffee, 0.5);
+    const backLight = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.DirectionalLight(0xffffee, 0.5);
     backLight.position.set(0, 5, -15);
     scene.add(backLight);
 }
@@ -53842,7 +54246,7 @@ function getRandomPosition(size) {
     const maxAttempts = 100;
     
     do {
-        position = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(
+        position = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(
             (Math.random() - 0.5) * 14,
             size + 0.5,
             (Math.random() - 0.5) * 14
@@ -53856,18 +54260,22 @@ function getRandomPosition(size) {
 /**
  * 创建几何体
  * 2个球体 + 3个立方体，随机分布且互不重叠
+ * 使用共享的 ClippingPhongMaterial
  */
 function createGeometries() {
-    const material = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.MeshPhongMaterial({
+    sharedMaterial = new _ClippingPhongMaterial_js__WEBPACK_IMPORTED_MODULE_1__.ClippingPhongMaterial({
         color: 0x808080,
         shininess: 60,
-        specular: 0x444444
+        specular: 0x444444,
+        transparent: false
     });
+    
+    console.log('共享 ClippingPhongMaterial 已创建');
 
     for (let i = 0; i < 2; i++) {
         const radius = 1.2 + Math.random() * 0.5;
-        const geometry = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.SphereGeometry(radius, 32, 32);
-        const sphere = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Mesh(geometry, material);
+        const geometry = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.SphereGeometry(radius, 32, 32);
+        const sphere = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Mesh(geometry, sharedMaterial);
         
         const position = getRandomPosition(radius);
         sphere.position.copy(position);
@@ -53875,15 +54283,18 @@ function createGeometries() {
         sphere.receiveShadow = true;
         sphere.userData.size = radius;
         sphere.userData.type = 'sphere';
+        sphere.userData.objectIndex = objects.length;
         
         objects.push(sphere);
         scene.add(sphere);
+        
+        console.log(`物体${objects.length} (球体) 创建于位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
     }
 
     for (let i = 0; i < 3; i++) {
         const size = 1.5 + Math.random() * 0.5;
-        const geometry = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.BoxGeometry(size, size, size);
-        const cube = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Mesh(geometry, material);
+        const geometry = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.BoxGeometry(size, size, size);
+        const cube = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Mesh(geometry, sharedMaterial);
         
         const halfSize = size / 2;
         const position = getRandomPosition(halfSize);
@@ -53893,10 +54304,15 @@ function createGeometries() {
         cube.receiveShadow = true;
         cube.userData.size = halfSize * 1.2;
         cube.userData.type = 'cube';
+        cube.userData.objectIndex = objects.length;
         
         objects.push(cube);
         scene.add(cube);
+        
+        console.log(`物体${objects.length} (立方体) 创建于位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
     }
+    
+    console.log(`场景中共有 ${objects.length} 个物体，全部使用共享材质`);
 }
 
 /**
@@ -53917,14 +54333,14 @@ function checkPlaneObjectIntersection(plane, object) {
     const max = boundingBox.max;
     
     const corners = [
-        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(min.x, min.y, min.z),
-        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(min.x, min.y, max.z),
-        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(min.x, max.y, min.z),
-        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(min.x, max.y, max.z),
-        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(max.x, min.y, min.z),
-        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(max.x, min.y, max.z),
-        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(max.x, max.y, min.z),
-        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(max.x, max.y, max.z)
+        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(min.x, min.y, min.z),
+        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(min.x, min.y, max.z),
+        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(min.x, max.y, min.z),
+        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(min.x, max.y, max.z),
+        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(max.x, min.y, min.z),
+        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(max.x, min.y, max.z),
+        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(max.x, max.y, min.z),
+        new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(max.x, max.y, max.z)
     ];
     
     let hasPositive = false;
@@ -53945,7 +54361,10 @@ function checkPlaneObjectIntersection(plane, object) {
 
 /**
  * 初始化随机剖面
- * 创建3个随机剖面，确保每个剖面至少剖切1个物体
+ * 创建3个剖面，按照要求精确控制影响范围：
+ * - Plane0：仅对物体1产生影响
+ * - Plane1：同时对物体2和物体3产生影响
+ * - Plane2：对所有物体产生影响
  */
 function initRandomClips() {
     try {
@@ -53960,85 +54379,112 @@ function initRandomClips() {
         clipManager = new _ClipManager_js__WEBPACK_IMPORTED_MODULE_0__["default"](renderer, scene);
         console.log('ClipManager 已创建');
         
-        const usedObjects = new Set();
-        const axes = ['x', 'y', 'z'];
-        
-        for (let i = 0; i < 3; i++) {
-            let planeCreated = false;
-            let attempts = 0;
-            const maxAttempts = 50;
-            
-            while (!planeCreated && attempts < maxAttempts) {
-                const axisIndex = Math.floor(Math.random() * 3);
-                const axis = axes[axisIndex];
-                
-                let normal, position;
-                
-                const targetObjects = objects.filter(obj => !usedObjects.has(obj));
-                const objectsToCheck = targetObjects.length > 0 ? targetObjects : objects;
-                
-                const targetObject = objectsToCheck[Math.floor(Math.random() * objectsToCheck.length)];
-                
-                const objPos = targetObject.position;
-                const objSize = targetObject.userData.size || 1;
-                
-                const offset = (Math.random() - 0.5) * objSize * 0.8;
-                
-                switch (axis) {
-                    case 'x':
-                        normal = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(1, 0, 0);
-                        position = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(objPos.x + offset, objPos.y, objPos.z);
-                        break;
-                    case 'y':
-                        normal = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(0, 1, 0);
-                        position = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(objPos.x, objPos.y + offset, objPos.z);
-                        break;
-                    case 'z':
-                        normal = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(0, 0, 1);
-                        position = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Vector3(objPos.x, objPos.y, objPos.z + offset);
-                        break;
-                }
-                
-                if (Math.random() > 0.5) {
-                    normal.negate();
-                }
-                
-                const testPlane = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Plane();
-                testPlane.setFromNormalAndCoplanarPoint(normal, position);
-                
-                const intersectingObjects = objects.filter(obj => 
-                    checkPlaneObjectIntersection(testPlane, obj)
-                );
-                
-                if (intersectingObjects.length > 0) {
-                    try {
-                        const planeId = clipManager.addPlane(normal, position);
-                        
-                        usedObjects.add(targetObject);
-                        
-                        console.log(`剖面 ${i + 1} 创建成功:`);
-                        console.log(`  - 方向: ${axis.toUpperCase()}轴`);
-                        console.log(`  - 位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
-                        console.log(`  - 剖切物体数: ${intersectingObjects.length}`);
-                        console.log(`  - 剖面ID: ${planeId}`);
-                        
-                        planeCreated = true;
-                    } catch (error) {
-                        console.warn(`创建剖面 ${i + 1} 失败:`, error.message);
-                        attempts++;
-                    }
-                } else {
-                    attempts++;
-                }
-            }
-            
-            if (!planeCreated) {
-                console.warn(`剖面 ${i + 1} 在 ${maxAttempts} 次尝试后未能创建`);
-            }
+        if (!sharedMaterial) {
+            throw new Error('共享材质未创建');
         }
         
+        const allPlanes = clipManager.getAllPlanes();
+        sharedMaterial.setClipPlanes(allPlanes);
+        sharedMaterial.setClipEnabled(true);
+        
+        console.log('共享材质已设置全局剖面');
+        
+        const planeConfigs = [
+            {
+                name: 'Plane0',
+                targetObjects: [0],
+                description: '仅影响物体1'
+            },
+            {
+                name: 'Plane1',
+                targetObjects: [1, 2],
+                description: '影响物体2和物体3'
+            },
+            {
+                name: 'Plane2',
+                targetObjects: [0, 1, 2, 3, 4],
+                description: '影响所有物体'
+            }
+        ];
+        
+        const planeIds = [];
+        
+        for (let i = 0; i < planeConfigs.length; i++) {
+            const config = planeConfigs[i];
+            const targetObjects = config.targetObjects
+                .map(idx => objects[idx])
+                .filter(obj => obj !== undefined);
+            
+            if (targetObjects.length === 0) {
+                console.warn(`${config.name}: 没有找到目标物体，跳过`);
+                continue;
+            }
+            
+            const primaryObject = targetObjects[0];
+            const objPos = primaryObject.position;
+            const objSize = primaryObject.userData.size || 1;
+            
+            const axes = ['x', 'y', 'z'];
+            const axis = axes[i % 3];
+            
+            let normal, position;
+            const offset = (Math.random() - 0.5) * objSize * 0.6;
+            
+            switch (axis) {
+                case 'x':
+                    normal = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(1, 0, 0);
+                    position = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(objPos.x + offset, objPos.y, objPos.z);
+                    break;
+                case 'y':
+                    normal = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(0, 1, 0);
+                    position = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(objPos.x, objPos.y + offset, objPos.z);
+                    break;
+                case 'z':
+                    normal = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(0, 0, 1);
+                    position = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Vector3(objPos.x, objPos.y, objPos.z + offset);
+                    break;
+            }
+            
+            if (Math.random() > 0.5) {
+                normal.negate();
+            }
+            
+            const planeId = clipManager.addPlane(normal, position);
+            planeIds.push(planeId);
+            
+            console.log(`${config.name} 创建成功:`);
+            console.log(`  - 目标: ${config.description}`);
+            console.log(`  - 方向: ${axis.toUpperCase()}轴`);
+            console.log(`  - 位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+            console.log(`  - 剖面ID: ${planeId}`);
+        }
+        
+        const updatedPlanes = clipManager.getAllPlanes();
+        sharedMaterial.setClipPlanes(updatedPlanes);
+        
+        objects.forEach((obj, objIndex) => {
+            const clipIndices = [];
+            
+            planeConfigs.forEach((config, planeIndex) => {
+                if (config.targetObjects.includes(objIndex)) {
+                    clipIndices.push(planeIndex);
+                }
+            });
+            
+            if (clipIndices.length > 0 && obj.material === sharedMaterial) {
+                sharedMaterial.setObjectClipIndices(clipIndices);
+                console.log(`物体${objIndex + 1} 受影响的剖面索引: [${clipIndices.join(', ')}]`);
+            }
+        });
+        
         const summary = clipManager.getSummary();
-        console.log(`剖面初始化完成，共创建 ${summary.planeCount} 个剖面`);
+        console.log(`\n=== 剖面初始化完成 ===`);
+        console.log(`共创建 ${summary.planeCount} 个剖面`);
+        console.log(`\n=== 物体-剖面映射关系 ===`);
+        planeConfigs.forEach((config, idx) => {
+            const affectedObjects = config.targetObjects.map(i => `物体${i+1}`).join(', ');
+            console.log(`${config.name}: ${affectedObjects}`);
+        });
         
         if (summary.planeCount < 3) {
             console.warn(`警告: 仅成功创建 ${summary.planeCount}/3 个剖面`);
@@ -54057,18 +54503,18 @@ function initRandomClips() {
  * 创建地面
  */
 function createGround() {
-    const groundGeometry = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.PlaneGeometry(40, 40);
-    const groundMaterial = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.MeshPhongMaterial({
+    const groundGeometry = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.PlaneGeometry(40, 40);
+    const groundMaterial = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.MeshPhongMaterial({
         color: 0x2d3436,
-        side: _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.DoubleSide
+        side: _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.DoubleSide
     });
-    const ground = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.Mesh(groundGeometry, groundMaterial);
+    const ground = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = 0;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    const gridHelper = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_1__.GridHelper(40, 40, 0x4a4a4a, 0x333333);
+    const gridHelper = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_2__.GridHelper(40, 40, 0x4a4a4a, 0x333333);
     gridHelper.position.y = 0.01;
     scene.add(gridHelper);
 }
