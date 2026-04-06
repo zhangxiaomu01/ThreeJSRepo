@@ -5,6 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "build": "webpack",
+    "build-debug": "webpack --config webpack.debug.config.js",
     "server": "webpack serve",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

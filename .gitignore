@@ -1,2 +1,3 @@
 # Igonre list
 node_modules/
+dist/*.map
