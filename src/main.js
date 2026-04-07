@@ -152,7 +152,7 @@ function getRandomPosition(size) {
 /**
  * 创建几何体
  * 2个球体 + 3个立方体，随机分布且互不重叠
- * 使用共享的 ClippingPhongMaterial
+ * 所有物体共享同一个材质实例
  */
 function createGeometries() {
     sharedMaterial = new ClippingPhongMaterial({
@@ -268,12 +268,12 @@ function initRandomClips() {
             throw new Error('场景中没有物体可供剖切');
         }
         
-        clipManager = new ClipManager(renderer, scene);
-        console.log('ClipManager 已创建');
-        
         if (!sharedMaterial) {
             throw new Error('共享材质未创建');
         }
+        
+        clipManager = new ClipManager(renderer, scene);
+        console.log('ClipManager 已创建');
         
         const allPlanes = clipManager.getAllPlanes();
         sharedMaterial.setClipPlanes(allPlanes);
@@ -354,29 +354,18 @@ function initRandomClips() {
         const updatedPlanes = clipManager.getAllPlanes();
         sharedMaterial.setClipPlanes(updatedPlanes);
         
-        objects.forEach((obj, objIndex) => {
-            const clipIndices = [];
-            
-            planeConfigs.forEach((config, planeIndex) => {
-                if (config.targetObjects.includes(objIndex)) {
-                    clipIndices.push(planeIndex);
-                }
-            });
-            
-            if (clipIndices.length > 0 && obj.material === sharedMaterial) {
-                sharedMaterial.setObjectClipIndices(clipIndices);
-                console.log(`物体${objIndex + 1} 受影响的剖面索引: [${clipIndices.join(', ')}]`);
-            }
-        });
+        const objectPlaneMapTexture = sharedMaterial.createObjectPlaneMap(objects, planeConfigs);
+        sharedMaterial.setObjectPlaneMap(objectPlaneMapTexture);
         
-        const summary = clipManager.getSummary();
-        console.log(`\n=== 剖面初始化完成 ===`);
-        console.log(`共创建 ${summary.planeCount} 个剖面`);
         console.log(`\n=== 物体-剖面映射关系 ===`);
         planeConfigs.forEach((config, idx) => {
             const affectedObjects = config.targetObjects.map(i => `物体${i+1}`).join(', ');
             console.log(`${config.name}: ${affectedObjects}`);
         });
+        
+        const summary = clipManager.getSummary();
+        console.log(`\n=== 剖面初始化完成 ===`);
+        console.log(`共创建 ${summary.planeCount} 个剖面`);
         
         if (summary.planeCount < 3) {
             console.warn(`警告: 仅成功创建 ${summary.planeCount}/3 个剖面`);

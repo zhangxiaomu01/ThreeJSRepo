@@ -1,6 +1,7 @@
 /**
  * 自定义剖切 Phong 材质
  * 基于 THREE.MeshPhongMaterial 扩展，支持物体与剖面的关联映射
+ * 使用纹理作为UBO替代方案实现物体-剖面映射
  */
 
 import * as THREE from '../threejs_r155/build/three.module.js';
@@ -10,6 +11,7 @@ const vertexShader = `
     
     varying vec3 vViewPosition;
     varying vec3 vWorldPosition;
+    varying float vObjectIndex;
     
     #include <common>
     #include <uv_pars_vertex>
@@ -50,6 +52,8 @@ const vertexShader = `
         
         vWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
         
+        vObjectIndex = float(gl_VertexID);
+        
         #include <envmap_vertex>
         #include <shadowmap_vertex>
         #include <fog_vertex>
@@ -68,11 +72,12 @@ const fragmentShader = `
     uniform vec3 clipPlaneNormals[MAX_CLIP_PLANES];
     uniform float clipPlaneConstants[MAX_CLIP_PLANES];
     uniform int numClipPlanes;
-    uniform int objectClipIndices[MAX_CLIP_PLANES_PER_OBJECT];
-    uniform int numObjectClipPlanes;
+    uniform sampler2D objectPlaneMap;
+    uniform int maxPlanesPerObject;
     uniform bool clipEnabled;
     
     varying vec3 vWorldPosition;
+    varying float vObjectIndex;
     
     #include <common>
     #include <packing>
@@ -99,13 +104,25 @@ const fragmentShader = `
     #include <logdepthbuf_pars_fragment>
     #include <clipping_planes_pars_fragment>
     
-    bool isClipped(vec3 worldPosition) {
+    bool isClipped(vec3 worldPosition, float objectIdx) {
         if (!clipEnabled) return false;
         
+        int objIndex = int(objectIdx + 0.5);
+        float texCoord = (float(objIndex) + 0.5) / 256.0;
+        vec4 mapData = texture2D(objectPlaneMap, vec2(texCoord, 0.5));
+        
+        int numPlanes = int(mapData.r * 255.0 + 0.5);
+        
         for (int i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
-            if (i >= numObjectClipPlanes) break;
+            if (i >= numPlanes) break;
             
-            int planeIndex = objectClipIndices[i];
+            float planeIndexF;
+            if (i == 0) planeIndexF = mapData.g;
+            else if (i == 1) planeIndexF = mapData.b;
+            else if (i == 2) planeIndexF = mapData.a;
+            
+            int planeIndex = int(planeIndexF * 255.0 + 0.5);
+            
             if (planeIndex < 0 || planeIndex >= numClipPlanes) continue;
             
             vec3 normal = clipPlaneNormals[planeIndex];
@@ -123,7 +140,7 @@ const fragmentShader = `
     void main() {
         #include <clipping_planes_fragment>
         
-        if (isClipped(vWorldPosition)) {
+        if (isClipped(vWorldPosition, vObjectIndex)) {
             discard;
         }
         
@@ -162,6 +179,7 @@ const fragmentShader = `
 
 const MAX_CLIP_PLANES = 16;
 const MAX_CLIP_PLANES_PER_OBJECT = 6;
+const OBJECT_PLANE_MAP_SIZE = 256;
 
 class ClippingPhongMaterial extends THREE.ShaderMaterial {
     constructor(parameters = {}) {
@@ -170,11 +188,6 @@ class ClippingPhongMaterial extends THREE.ShaderMaterial {
         for (let i = 0; i < MAX_CLIP_PLANES; i++) {
             clipPlaneNormals.push(new THREE.Vector3(0, 0, 0));
             clipPlaneConstants.push(0);
-        }
-        
-        const objectClipIndices = [];
-        for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
-            objectClipIndices.push(-1);
         }
         
         const uniforms = THREE.UniformsUtils.merge([
@@ -198,8 +211,8 @@ class ClippingPhongMaterial extends THREE.ShaderMaterial {
                 clipPlaneNormals: { value: clipPlaneNormals },
                 clipPlaneConstants: { value: clipPlaneConstants },
                 numClipPlanes: { value: 0 },
-                objectClipIndices: { value: objectClipIndices },
-                numObjectClipPlanes: { value: 0 },
+                objectPlaneMap: { value: null },
+                maxPlanesPerObject: { value: MAX_CLIP_PLANES_PER_OBJECT },
                 clipEnabled: { value: true }
             }
         ]);
@@ -252,24 +265,49 @@ class ClippingPhongMaterial extends THREE.ShaderMaterial {
         this.needsUpdate = true;
     }
     
-    setObjectClipIndices(indices) {
-        if (!Array.isArray(indices)) {
-            console.warn('ClippingPhongMaterial.setObjectClipIndices: indices 必须是数组');
-            return;
-        }
+    setObjectPlaneMap(objectPlaneMap) {
+        this.uniforms.objectPlaneMap.value = objectPlaneMap;
+        this.needsUpdate = true;
+    }
+    
+    createObjectPlaneMap(objects, planeConfigs) {
+        const mapSize = Math.min(objects.length, OBJECT_PLANE_MAP_SIZE);
+        const mapData = new Uint8Array(mapSize * 4);
         
-        const numIndices = Math.min(indices.length, MAX_CLIP_PLANES_PER_OBJECT);
-        this.uniforms.numObjectClipPlanes.value = numIndices;
-        
-        for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
-            if (i < numIndices) {
-                this.uniforms.objectClipIndices.value[i] = indices[i];
+        for (let objIndex = 0; objIndex < mapSize; objIndex++) {
+            const offset = objIndex * 4;
+            const config = planeConfigs.find(cfg => cfg.targetObjects.includes(objIndex));
+            
+            if (config) {
+                const affectedPlanes = [];
+                planeConfigs.forEach((cfg, planeIndex) => {
+                    if (cfg.targetObjects.includes(objIndex)) {
+                        affectedPlanes.push(planeIndex);
+                    }
+                });
+                
+                const numPlanes = Math.min(affectedPlanes.length, MAX_CLIP_PLANES_PER_OBJECT);
+                mapData[offset] = numPlanes;
+                
+                for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
+                    if (i < numPlanes) {
+                        mapData[offset + 1 + i] = affectedPlanes[i];
+                    } else {
+                        mapData[offset + 1 + i] = 255;
+                    }
+                }
             } else {
-                this.uniforms.objectClipIndices.value[i] = -1;
+                mapData[offset] = 0;
+                for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
+                    mapData[offset + 1 + i] = 255;
+                }
             }
         }
         
-        this.needsUpdate = true;
+        const texture = new THREE.DataTexture(mapData, mapSize, 1, THREE.RedFormat, THREE.UnsignedByteType);
+        texture.needsUpdate = true;
+        
+        return texture;
     }
     
     setClipEnabled(enabled) {
@@ -367,16 +405,13 @@ class ClippingPhongMaterial extends THREE.ShaderMaterial {
         clonedMaterial.uniforms.shininess.value = this.uniforms.shininess.value;
         clonedMaterial.uniforms.opacity.value = this.uniforms.opacity.value;
         clonedMaterial.uniforms.numClipPlanes.value = this.uniforms.numClipPlanes.value;
-        clonedMaterial.uniforms.numObjectClipPlanes.value = this.uniforms.numObjectClipPlanes.value;
+        clonedMaterial.uniforms.objectPlaneMap.value = this.uniforms.objectPlaneMap.value;
+        clonedMaterial.uniforms.maxPlanesPerObject.value = this.uniforms.maxPlanesPerObject.value;
         clonedMaterial.uniforms.clipEnabled.value = this.uniforms.clipEnabled.value;
         
         for (let i = 0; i < this.uniforms.numClipPlanes.value; i++) {
             clonedMaterial.uniforms.clipPlaneNormals.value[i].copy(this.uniforms.clipPlaneNormals.value[i]);
             clonedMaterial.uniforms.clipPlaneConstants.value[i] = this.uniforms.clipPlaneConstants.value[i];
-        }
-        
-        for (let i = 0; i < this.uniforms.numObjectClipPlanes.value; i++) {
-            clonedMaterial.uniforms.objectClipIndices.value[i] = this.uniforms.objectClipIndices.value[i];
         }
         
         clonedMaterial.defines = { ...this.defines };
@@ -388,5 +423,5 @@ class ClippingPhongMaterial extends THREE.ShaderMaterial {
     }
 }
 
-export { ClippingPhongMaterial, MAX_CLIP_PLANES, MAX_CLIP_PLANES_PER_OBJECT };
+export { ClippingPhongMaterial, MAX_CLIP_PLANES, MAX_CLIP_PLANES_PER_OBJECT, OBJECT_PLANE_MAP_SIZE };
 export default ClippingPhongMaterial;

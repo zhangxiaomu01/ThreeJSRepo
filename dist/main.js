@@ -376,12 +376,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   ClippingPhongMaterial: () => (/* binding */ ClippingPhongMaterial),
 /* harmony export */   MAX_CLIP_PLANES: () => (/* binding */ MAX_CLIP_PLANES),
 /* harmony export */   MAX_CLIP_PLANES_PER_OBJECT: () => (/* binding */ MAX_CLIP_PLANES_PER_OBJECT),
+/* harmony export */   OBJECT_PLANE_MAP_SIZE: () => (/* binding */ OBJECT_PLANE_MAP_SIZE),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 /* harmony import */ var _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../threejs_r155/build/three.module.js */ "./threejs_r155/build/three.module.js");
 /**
  * 自定义剖切 Phong 材质
  * 基于 THREE.MeshPhongMaterial 扩展，支持物体与剖面的关联映射
+ * 使用纹理作为UBO替代方案实现物体-剖面映射
  */
 
 
@@ -391,6 +393,7 @@ const vertexShader = `
     
     varying vec3 vViewPosition;
     varying vec3 vWorldPosition;
+    varying float vObjectIndex;
     
     #include <common>
     #include <uv_pars_vertex>
@@ -431,6 +434,8 @@ const vertexShader = `
         
         vWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
         
+        vObjectIndex = float(gl_VertexID);
+        
         #include <envmap_vertex>
         #include <shadowmap_vertex>
         #include <fog_vertex>
@@ -449,11 +454,12 @@ const fragmentShader = `
     uniform vec3 clipPlaneNormals[MAX_CLIP_PLANES];
     uniform float clipPlaneConstants[MAX_CLIP_PLANES];
     uniform int numClipPlanes;
-    uniform int objectClipIndices[MAX_CLIP_PLANES_PER_OBJECT];
-    uniform int numObjectClipPlanes;
+    uniform sampler2D objectPlaneMap;
+    uniform int maxPlanesPerObject;
     uniform bool clipEnabled;
     
     varying vec3 vWorldPosition;
+    varying float vObjectIndex;
     
     #include <common>
     #include <packing>
@@ -480,13 +486,25 @@ const fragmentShader = `
     #include <logdepthbuf_pars_fragment>
     #include <clipping_planes_pars_fragment>
     
-    bool isClipped(vec3 worldPosition) {
+    bool isClipped(vec3 worldPosition, float objectIdx) {
         if (!clipEnabled) return false;
         
+        int objIndex = int(objectIdx + 0.5);
+        float texCoord = (float(objIndex) + 0.5) / 256.0;
+        vec4 mapData = texture2D(objectPlaneMap, vec2(texCoord, 0.5));
+        
+        int numPlanes = int(mapData.r * 255.0 + 0.5);
+        
         for (int i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
-            if (i >= numObjectClipPlanes) break;
+            if (i >= numPlanes) break;
             
-            int planeIndex = objectClipIndices[i];
+            float planeIndexF;
+            if (i == 0) planeIndexF = mapData.g;
+            else if (i == 1) planeIndexF = mapData.b;
+            else if (i == 2) planeIndexF = mapData.a;
+            
+            int planeIndex = int(planeIndexF * 255.0 + 0.5);
+            
             if (planeIndex < 0 || planeIndex >= numClipPlanes) continue;
             
             vec3 normal = clipPlaneNormals[planeIndex];
@@ -504,7 +522,7 @@ const fragmentShader = `
     void main() {
         #include <clipping_planes_fragment>
         
-        if (isClipped(vWorldPosition)) {
+        if (isClipped(vWorldPosition, vObjectIndex)) {
             discard;
         }
         
@@ -543,6 +561,7 @@ const fragmentShader = `
 
 const MAX_CLIP_PLANES = 16;
 const MAX_CLIP_PLANES_PER_OBJECT = 6;
+const OBJECT_PLANE_MAP_SIZE = 256;
 
 class ClippingPhongMaterial extends _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.ShaderMaterial {
     constructor(parameters = {}) {
@@ -551,11 +570,6 @@ class ClippingPhongMaterial extends _threejs_r155_build_three_module_js__WEBPACK
         for (let i = 0; i < MAX_CLIP_PLANES; i++) {
             clipPlaneNormals.push(new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, 0, 0));
             clipPlaneConstants.push(0);
-        }
-        
-        const objectClipIndices = [];
-        for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
-            objectClipIndices.push(-1);
         }
         
         const uniforms = _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UniformsUtils.merge([
@@ -579,8 +593,8 @@ class ClippingPhongMaterial extends _threejs_r155_build_three_module_js__WEBPACK
                 clipPlaneNormals: { value: clipPlaneNormals },
                 clipPlaneConstants: { value: clipPlaneConstants },
                 numClipPlanes: { value: 0 },
-                objectClipIndices: { value: objectClipIndices },
-                numObjectClipPlanes: { value: 0 },
+                objectPlaneMap: { value: null },
+                maxPlanesPerObject: { value: MAX_CLIP_PLANES_PER_OBJECT },
                 clipEnabled: { value: true }
             }
         ]);
@@ -633,24 +647,49 @@ class ClippingPhongMaterial extends _threejs_r155_build_three_module_js__WEBPACK
         this.needsUpdate = true;
     }
     
-    setObjectClipIndices(indices) {
-        if (!Array.isArray(indices)) {
-            console.warn('ClippingPhongMaterial.setObjectClipIndices: indices 必须是数组');
-            return;
-        }
+    setObjectPlaneMap(objectPlaneMap) {
+        this.uniforms.objectPlaneMap.value = objectPlaneMap;
+        this.needsUpdate = true;
+    }
+    
+    createObjectPlaneMap(objects, planeConfigs) {
+        const mapSize = Math.min(objects.length, OBJECT_PLANE_MAP_SIZE);
+        const mapData = new Uint8Array(mapSize * 4);
         
-        const numIndices = Math.min(indices.length, MAX_CLIP_PLANES_PER_OBJECT);
-        this.uniforms.numObjectClipPlanes.value = numIndices;
-        
-        for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
-            if (i < numIndices) {
-                this.uniforms.objectClipIndices.value[i] = indices[i];
+        for (let objIndex = 0; objIndex < mapSize; objIndex++) {
+            const offset = objIndex * 4;
+            const config = planeConfigs.find(cfg => cfg.targetObjects.includes(objIndex));
+            
+            if (config) {
+                const affectedPlanes = [];
+                planeConfigs.forEach((cfg, planeIndex) => {
+                    if (cfg.targetObjects.includes(objIndex)) {
+                        affectedPlanes.push(planeIndex);
+                    }
+                });
+                
+                const numPlanes = Math.min(affectedPlanes.length, MAX_CLIP_PLANES_PER_OBJECT);
+                mapData[offset] = numPlanes;
+                
+                for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
+                    if (i < numPlanes) {
+                        mapData[offset + 1 + i] = affectedPlanes[i];
+                    } else {
+                        mapData[offset + 1 + i] = 255;
+                    }
+                }
             } else {
-                this.uniforms.objectClipIndices.value[i] = -1;
+                mapData[offset] = 0;
+                for (let i = 0; i < MAX_CLIP_PLANES_PER_OBJECT; i++) {
+                    mapData[offset + 1 + i] = 255;
+                }
             }
         }
         
-        this.needsUpdate = true;
+        const texture = new _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.DataTexture(mapData, mapSize, 1, _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.RedFormat, _threejs_r155_build_three_module_js__WEBPACK_IMPORTED_MODULE_0__.UnsignedByteType);
+        texture.needsUpdate = true;
+        
+        return texture;
     }
     
     setClipEnabled(enabled) {
@@ -748,16 +787,13 @@ class ClippingPhongMaterial extends _threejs_r155_build_three_module_js__WEBPACK
         clonedMaterial.uniforms.shininess.value = this.uniforms.shininess.value;
         clonedMaterial.uniforms.opacity.value = this.uniforms.opacity.value;
         clonedMaterial.uniforms.numClipPlanes.value = this.uniforms.numClipPlanes.value;
-        clonedMaterial.uniforms.numObjectClipPlanes.value = this.uniforms.numObjectClipPlanes.value;
+        clonedMaterial.uniforms.objectPlaneMap.value = this.uniforms.objectPlaneMap.value;
+        clonedMaterial.uniforms.maxPlanesPerObject.value = this.uniforms.maxPlanesPerObject.value;
         clonedMaterial.uniforms.clipEnabled.value = this.uniforms.clipEnabled.value;
         
         for (let i = 0; i < this.uniforms.numClipPlanes.value; i++) {
             clonedMaterial.uniforms.clipPlaneNormals.value[i].copy(this.uniforms.clipPlaneNormals.value[i]);
             clonedMaterial.uniforms.clipPlaneConstants.value[i] = this.uniforms.clipPlaneConstants.value[i];
-        }
-        
-        for (let i = 0; i < this.uniforms.numObjectClipPlanes.value; i++) {
-            clonedMaterial.uniforms.objectClipIndices.value[i] = this.uniforms.objectClipIndices.value[i];
         }
         
         clonedMaterial.defines = { ...this.defines };
@@ -54269,7 +54305,7 @@ function getRandomPosition(size) {
 /**
  * 创建几何体
  * 2个球体 + 3个立方体，随机分布且互不重叠
- * 使用共享的 ClippingPhongMaterial
+ * 所有物体共享同一个材质实例
  */
 function createGeometries() {
     sharedMaterial = new _ClippingPhongMaterial_js__WEBPACK_IMPORTED_MODULE_1__.ClippingPhongMaterial({
@@ -54385,12 +54421,12 @@ function initRandomClips() {
             throw new Error('场景中没有物体可供剖切');
         }
         
-        clipManager = new _ClipManager_js__WEBPACK_IMPORTED_MODULE_0__["default"](renderer, scene);
-        console.log('ClipManager 已创建');
-        
         if (!sharedMaterial) {
             throw new Error('共享材质未创建');
         }
+        
+        clipManager = new _ClipManager_js__WEBPACK_IMPORTED_MODULE_0__["default"](renderer, scene);
+        console.log('ClipManager 已创建');
         
         const allPlanes = clipManager.getAllPlanes();
         sharedMaterial.setClipPlanes(allPlanes);
@@ -54471,29 +54507,18 @@ function initRandomClips() {
         const updatedPlanes = clipManager.getAllPlanes();
         sharedMaterial.setClipPlanes(updatedPlanes);
         
-        objects.forEach((obj, objIndex) => {
-            const clipIndices = [];
-            
-            planeConfigs.forEach((config, planeIndex) => {
-                if (config.targetObjects.includes(objIndex)) {
-                    clipIndices.push(planeIndex);
-                }
-            });
-            
-            if (clipIndices.length > 0 && obj.material === sharedMaterial) {
-                sharedMaterial.setObjectClipIndices(clipIndices);
-                console.log(`物体${objIndex + 1} 受影响的剖面索引: [${clipIndices.join(', ')}]`);
-            }
-        });
+        const objectPlaneMapTexture = sharedMaterial.createObjectPlaneMap(objects, planeConfigs);
+        sharedMaterial.setObjectPlaneMap(objectPlaneMapTexture);
         
-        const summary = clipManager.getSummary();
-        console.log(`\n=== 剖面初始化完成 ===`);
-        console.log(`共创建 ${summary.planeCount} 个剖面`);
         console.log(`\n=== 物体-剖面映射关系 ===`);
         planeConfigs.forEach((config, idx) => {
             const affectedObjects = config.targetObjects.map(i => `物体${i+1}`).join(', ');
             console.log(`${config.name}: ${affectedObjects}`);
         });
+        
+        const summary = clipManager.getSummary();
+        console.log(`\n=== 剖面初始化完成 ===`);
+        console.log(`共创建 ${summary.planeCount} 个剖面`);
         
         if (summary.planeCount < 3) {
             console.warn(`警告: 仅成功创建 ${summary.planeCount}/3 个剖面`);
